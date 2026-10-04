@@ -1,0 +1,6 @@
+{
+  "name": "Admissions Portfolio & Academic Dossier",
+  "description": "Digital college application portfolio showcasing research projects, engineering builds, extracurricular leadership, and academic honors.",
+  "requestFramePermissions": [],
+  "majorCapabilities": ["MAJOR_CAPABILITY_SERVER_SIDE_GEMINI_API"]
+}
