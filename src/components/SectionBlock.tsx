@@ -21,7 +21,7 @@ import {
 interface SectionBlockProps {
   section: Section;
   items: PortfolioItem[];
-  isPreviewMode: boolean;
+  isOwner: boolean;
   onAddItem: (sectionId: string) => void;
   onEditItem: (item: PortfolioItem) => void;
   onDeleteItem: (id: string) => void;
@@ -57,7 +57,7 @@ const renderSectionIcon = (iconName: string, className = 'w-5 h-5') => {
 export const SectionBlock: React.FC<SectionBlockProps> = ({
   section,
   items,
-  isPreviewMode,
+  isOwner,
   onAddItem,
   onEditItem,
   onDeleteItem,
@@ -93,23 +93,21 @@ export const SectionBlock: React.FC<SectionBlockProps> = ({
           </div>
         </div>
 
-        {/* Section Actions */}
-        <div className="flex items-center gap-2 self-start sm:self-center shrink-0 no-print">
-          {!isPreviewMode && (
+        {/* Section Actions (ONLY in Owner Mode) */}
+        {isOwner && (
+          <div className="flex items-center gap-2 self-start sm:self-center shrink-0 no-print">
             <button
               onClick={() => onAddItem(section.id)}
-              className="px-3.5 py-1.5 text-xs font-semibold text-slate-900 bg-white hover:bg-slate-50 border border-slate-300 rounded-lg shadow-2xs flex items-center gap-1.5 transition-all hover:border-slate-400"
+              className="px-3.5 py-1.5 text-xs font-semibold text-slate-900 bg-white hover:bg-slate-50 border border-slate-300 rounded-lg shadow-2xs flex items-center gap-1.5 transition-all hover:border-slate-400 cursor-pointer"
             >
               <Plus className="w-3.5 h-3.5 text-indigo-600" />
               <span>Add to {section.name}</span>
             </button>
-          )}
 
-          {!isPreviewMode && (
             <div className="relative">
               <button
                 onClick={() => setShowMenu(!showMenu)}
-                className="p-1.5 text-slate-400 hover:text-slate-700 hover:bg-white rounded-lg transition-colors border border-transparent hover:border-slate-200"
+                className="p-1.5 text-slate-400 hover:text-slate-700 hover:bg-white rounded-lg transition-colors border border-transparent hover:border-slate-200 cursor-pointer"
                 title="Section Options"
               >
                 <MoreVertical className="w-4 h-4" />
@@ -122,7 +120,7 @@ export const SectionBlock: React.FC<SectionBlockProps> = ({
                 >
                   <button
                     onClick={() => onEditSection(section)}
-                    className="w-full px-3 py-2 text-left text-slate-700 hover:bg-slate-50 flex items-center gap-2"
+                    className="w-full px-3 py-2 text-left text-slate-700 hover:bg-slate-50 flex items-center gap-2 cursor-pointer"
                   >
                     <Pencil className="w-3.5 h-3.5 text-slate-400" />
                     <span>Edit Section Details</span>
@@ -138,7 +136,7 @@ export const SectionBlock: React.FC<SectionBlockProps> = ({
                           onDeleteSection(section.id);
                         }
                       }}
-                      className="w-full px-3 py-2 text-left text-rose-600 hover:bg-rose-50 flex items-center gap-2"
+                      className="w-full px-3 py-2 text-left text-rose-600 hover:bg-rose-50 flex items-center gap-2 cursor-pointer"
                     >
                       <Trash2 className="w-3.5 h-3.5" />
                       <span>Delete Section</span>
@@ -147,8 +145,8 @@ export const SectionBlock: React.FC<SectionBlockProps> = ({
                 </div>
               )}
             </div>
-          )}
-        </div>
+          </div>
+        )}
       </div>
 
       {/* Items Grid or Empty State */}
@@ -162,14 +160,16 @@ export const SectionBlock: React.FC<SectionBlockProps> = ({
               No entries in {section.name} yet
             </h3>
             <p className="text-xs text-slate-500 max-w-md mx-auto">
-              Add photos, descriptions, milestones, and details of what you did.
+              {isOwner
+                ? 'Add photos, descriptions, milestones, and details of what you did.'
+                : 'Entries will appear here once added.'}
             </p>
           </div>
-          {!isPreviewMode && (
+          {isOwner && (
             <div className="pt-2">
               <button
                 onClick={() => onAddItem(section.id)}
-                className="px-4 py-2 bg-slate-900 hover:bg-slate-800 text-white rounded-xl text-xs font-semibold inline-flex items-center gap-1.5 shadow-2xs transition-colors"
+                className="px-4 py-2 bg-slate-900 hover:bg-slate-800 text-white rounded-xl text-xs font-semibold inline-flex items-center gap-1.5 shadow-2xs transition-colors cursor-pointer"
               >
                 <Plus className="w-3.5 h-3.5 text-amber-300" />
                 <span>+ Add to {section.name}</span>
@@ -183,7 +183,7 @@ export const SectionBlock: React.FC<SectionBlockProps> = ({
             <ItemCard
               key={item.id}
               item={item}
-              isPreviewMode={isPreviewMode}
+              isOwner={isOwner}
               onEdit={onEditItem}
               onDelete={onDeleteItem}
               onOpenPhoto={onOpenPhoto}

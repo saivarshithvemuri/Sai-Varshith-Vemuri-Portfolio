@@ -4,7 +4,7 @@ import { ExternalLink, Pencil, Trash2, Image as ImageIcon } from 'lucide-react';
 
 interface ItemCardProps {
   item: PortfolioItem;
-  isPreviewMode: boolean;
+  isOwner: boolean;
   onEdit: (item: PortfolioItem) => void;
   onDelete: (id: string) => void;
   onOpenPhoto: (photos: string[], index: number) => void;
@@ -12,7 +12,7 @@ interface ItemCardProps {
 
 export const ItemCard: React.FC<ItemCardProps> = ({
   item,
-  isPreviewMode,
+  isOwner,
   onEdit,
   onDelete,
   onOpenPhoto,
@@ -49,7 +49,7 @@ export const ItemCard: React.FC<ItemCardProps> = ({
                 <button
                   key={idx}
                   onClick={() => onOpenPhoto(item.photos, idx)}
-                  className="w-12 h-10 rounded-md overflow-hidden border border-slate-200 hover:border-slate-400 shrink-0 transition-all opacity-80 hover:opacity-100"
+                  className="w-12 h-10 rounded-md overflow-hidden border border-slate-200 hover:border-slate-400 shrink-0 transition-all opacity-80 hover:opacity-100 cursor-pointer"
                 >
                   <img src={p} alt="" className="w-full h-full object-cover" />
                 </button>
@@ -70,12 +70,13 @@ export const ItemCard: React.FC<ItemCardProps> = ({
               <span />
             )}
 
-            {!isPreviewMode && (
-              <div className="flex items-center gap-1 opacity-80 group-hover:opacity-100 transition-opacity no-print">
+            {/* ONLY visible if unlocked as Owner */}
+            {isOwner && (
+              <div className="flex items-center gap-1 opacity-90 group-hover:opacity-100 transition-opacity no-print">
                 <button
                   onClick={() => onEdit(item)}
-                  className="p-1.5 text-slate-400 hover:text-slate-700 hover:bg-slate-100 rounded-md transition-colors"
-                  title="Edit"
+                  className="p-1.5 text-slate-400 hover:text-slate-700 hover:bg-slate-100 rounded-md transition-colors cursor-pointer"
+                  title="Edit item"
                 >
                   <Pencil className="w-3.5 h-3.5" />
                 </button>
@@ -83,8 +84,8 @@ export const ItemCard: React.FC<ItemCardProps> = ({
                   onClick={() => {
                     if (confirm(`Delete "${item.title}"?`)) onDelete(item.id);
                   }}
-                  className="p-1.5 text-slate-400 hover:text-rose-600 hover:bg-rose-50 rounded-md transition-colors"
-                  title="Delete"
+                  className="p-1.5 text-slate-400 hover:text-rose-600 hover:bg-rose-50 rounded-md transition-colors cursor-pointer"
+                  title="Delete item"
                 >
                   <Trash2 className="w-3.5 h-3.5" />
                 </button>

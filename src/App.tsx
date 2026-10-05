@@ -1,6 +1,6 @@
 import React, { useState, useEffect } from 'react';
 import { Section, PortfolioItem, UserProfile } from './types/portfolio';
-import { defaultSections, initialProfile } from './data/defaultPortfolio';
+import { defaultSections, initialProfile, defaultItems } from './data/defaultPortfolio';
 import { Header } from './components/Header';
 import { ProfileBanner } from './components/ProfileBanner';
 import { ProfileModal } from './components/ProfileModal';
@@ -8,6 +8,8 @@ import { SectionBlock } from './components/SectionBlock';
 import { ItemModal } from './components/ItemModal';
 import { NewSectionModal } from './components/NewSectionModal';
 import { PhotoLightbox } from './components/PhotoLightbox';
+import { OwnerAuthModal } from './components/OwnerAuthModal';
+import { PublishModal } from './components/PublishModal';
 import {
   Plus,
   FolderPlus,
@@ -21,14 +23,53 @@ import {
   BookOpen,
   Music,
   Camera,
+  Lock,
+  Globe,
+  ShieldCheck,
 } from 'lucide-react';
 
 const SECTIONS_STORAGE_KEY = 'user_custom_sections_v2';
 const ITEMS_STORAGE_KEY = 'user_portfolio_items_v2';
 const PROFILE_STORAGE_KEY = 'user_portfolio_profile_v2';
+const OWNER_PASSCODE_STORAGE_KEY = 'sai_portfolio_owner_passcode';
+const OWNER_AUTH_STORAGE_KEY = 'sai_portfolio_is_owner_unlocked';
 
 export default function App() {
-  // 1. Sections state
+  // 1. Passcode & Owner Authentication State
+  const [currentPasscode, setCurrentPasscode] = useState<string>(() => {
+    try {
+      return localStorage.getItem(OWNER_PASSCODE_STORAGE_KEY) || '1234';
+    } catch {
+      return '1234';
+    }
+  });
+
+  const [isOwner, setIsOwner] = useState<boolean>(() => {
+    try {
+      return localStorage.getItem(OWNER_AUTH_STORAGE_KEY) === 'true';
+    } catch {
+      return false;
+    }
+  });
+
+  // Check URL query parameters for fast owner unlocking (e.g. ?passcode=1234 or ?admin=true)
+  useEffect(() => {
+    try {
+      const params = new URLSearchParams(window.location.search);
+      const paramPasscode = params.get('passcode') || params.get('pin');
+      const isAdmin = params.get('admin') === 'true' || params.get('owner') === 'true';
+      if (paramPasscode === currentPasscode || (isAdmin && currentPasscode === '1234')) {
+        setIsOwner(true);
+        localStorage.setItem(OWNER_AUTH_STORAGE_KEY, 'true');
+        const cleanUrl = window.location.pathname;
+        window.history.replaceState({}, document.title, cleanUrl);
+      }
+    } catch (e) {
+      console.error(e);
+    }
+  }, [currentPasscode]);
+
+  // 2. Sections state
   const [sections, setSections] = useState<Section[]>(() => {
     try {
       const saved = localStorage.getItem(SECTIONS_STORAGE_KEY);
@@ -42,7 +83,7 @@ export default function App() {
     return defaultSections;
   });
 
-  // 2. Items state (starts empty as requested)
+  // 3. Items state
   const [items, setItems] = useState<PortfolioItem[]>(() => {
     try {
       const saved = localStorage.getItem(ITEMS_STORAGE_KEY);
@@ -53,10 +94,10 @@ export default function App() {
     } catch (e) {
       console.error(e);
     }
-    return [];
+    return defaultItems;
   });
 
-  // 3. User profile state
+  // 4. User profile state
   const [profile, setProfile] = useState<UserProfile>(() => {
     try {
       const saved = localStorage.getItem(PROFILE_STORAGE_KEY);
@@ -75,10 +116,37 @@ export default function App() {
     return initialProfile;
   });
 
+  // Try fetching published data for public visitors on any host
+  useEffect(() => {
+    const hasLocalItems = localStorage.getItem(ITEMS_STORAGE_KEY);
+    if (!hasLocalItems) {
+      fetch('./portfolioData.json')
+        .then((res) => {
+          if (res.ok) return res.json();
+          throw new Error('No published portfolioData.json');
+        })
+        .then((data) => {
+          if (data) {
+            if (Array.isArray(data.items) && data.items.length > 0) {
+              setItems(data.items);
+            }
+            if (Array.isArray(data.sections) && data.sections.length > 0) {
+              setSections(data.sections);
+            }
+            if (data.profile) {
+              setProfile((prev) => ({ ...prev, ...data.profile }));
+            }
+          }
+        })
+        .catch(() => {
+          // Fallback to default
+        });
+    }
+  }, []);
+
   // Navigation & filter state
   const [activeSectionId, setActiveSectionId] = useState<string>('all');
   const [searchQuery, setSearchQuery] = useState<string>('');
-  const [isPreviewMode, setIsPreviewMode] = useState<boolean>(false);
 
   // Modals state
   const [isItemModalOpen, setIsItemModalOpen] = useState(false);
@@ -89,6 +157,8 @@ export default function App() {
   const [editingSection, setEditingSection] = useState<Section | null>(null);
 
   const [isProfileModalOpen, setIsProfileModalOpen] = useState(false);
+  const [isOwnerAuthModalOpen, setIsOwnerAuthModalOpen] = useState(false);
+  const [isPublishModalOpen, setIsPublishModalOpen] = useState(false);
 
   // Lightbox state
   const [lightboxPhotos, setLightboxPhotos] = useState<string[]>([]);
@@ -100,7 +170,7 @@ export default function App() {
 
   const showToast = (msg: string) => {
     setToastMessage(msg);
-    setTimeout(() => setToastMessage(null), 3000);
+    setTimeout(() => setToastMessage(null), 3500);
   };
 
   // Sync to localStorage
@@ -130,6 +200,37 @@ export default function App() {
     } catch (e) {
       console.error(e);
     }
+  };
+
+  // Owner Mode Auth handlers
+  const handleUnlockOwner = () => {
+    setIsOwner(true);
+    try {
+      localStorage.setItem(OWNER_AUTH_STORAGE_KEY, 'true');
+    } catch (e) {
+      console.error(e);
+    }
+    showToast('Unlocked Owner Mode. You can now edit your portfolio!');
+  };
+
+  const handleLockOwner = () => {
+    setIsOwner(false);
+    try {
+      localStorage.removeItem(OWNER_AUTH_STORAGE_KEY);
+    } catch (e) {
+      console.error(e);
+    }
+    showToast('Locked. Viewing website in Read-Only Visitor Mode.');
+  };
+
+  const handleUpdatePasscode = (newPasscode: string) => {
+    setCurrentPasscode(newPasscode);
+    try {
+      localStorage.setItem(OWNER_PASSCODE_STORAGE_KEY, newPasscode);
+    } catch (e) {
+      console.error(e);
+    }
+    showToast('Passcode updated!');
   };
 
   // Item operations
@@ -195,7 +296,6 @@ export default function App() {
   const handleDeleteSection = (sectionId: string) => {
     const updatedSections = sections.filter((s) => s.id !== sectionId);
     saveSections(updatedSections);
-    // Also remove items in that section
     const updatedItems = items.filter((i) => i.sectionId !== sectionId);
     saveItems(updatedItems);
     if (activeSectionId === sectionId) {
@@ -311,13 +411,46 @@ export default function App() {
 
   return (
     <div className="min-h-screen bg-[#FAF9F5] text-slate-800 flex flex-col font-sans selection:bg-amber-100 selection:text-amber-900">
+      {/* Owner Mode Status Banner (only shown when Owner is logged in) */}
+      {isOwner && (
+        <aside aria-label="Owner status banner" className="bg-slate-900 text-white text-xs py-2 px-4 border-b border-slate-800 no-print">
+          <div className="max-w-6xl mx-auto flex items-center justify-between gap-3">
+            <div className="flex items-center gap-2">
+              <span className="w-2 h-2 rounded-full bg-emerald-400 animate-pulse shrink-0" />
+              <span className="font-semibold text-emerald-300">Owner Mode Active:</span>
+              <span className="text-slate-300 hidden sm:inline">
+                You can edit anything. Visitors see your site strictly in Read-Only Mode.
+              </span>
+            </div>
+            <div className="flex items-center gap-3">
+              <button
+                onClick={() => setIsPublishModalOpen(true)}
+                className="text-xs text-amber-300 hover:text-amber-200 underline font-medium cursor-pointer flex items-center gap-1"
+              >
+                <Globe className="w-3.5 h-3.5" />
+                <span>Publish for Free Hoster</span>
+              </button>
+              <button
+                onClick={handleLockOwner}
+                className="px-2.5 py-1 bg-slate-800 hover:bg-slate-700 text-slate-200 rounded text-[11px] font-medium transition-colors cursor-pointer flex items-center gap-1 border border-slate-700"
+              >
+                <Lock className="w-3 h-3 text-amber-400" />
+                <span>Lock View</span>
+              </button>
+            </div>
+          </div>
+        </aside>
+      )}
+
       {/* Top Navigation */}
       <Header
         name={profile.name}
-        isPreviewMode={isPreviewMode}
-        onTogglePreview={() => setIsPreviewMode(!isPreviewMode)}
+        isOwner={isOwner}
+        onOpenOwnerAuth={() => setIsOwnerAuthModalOpen(true)}
+        onLockOwner={handleLockOwner}
         onAddNew={() => handleOpenAddItem(sections[0]?.id)}
         onAddSection={handleOpenNewSection}
+        onOpenPublishModal={() => setIsPublishModalOpen(true)}
         onExport={handleExportJSON}
         onImport={handleImportJSON}
         onClear={handleClearAll}
@@ -331,7 +464,7 @@ export default function App() {
         {/* Profile Card / Header Banner */}
         <ProfileBanner
           profile={profile}
-          isPreviewMode={isPreviewMode}
+          isOwner={isOwner}
           onEditProfile={() => setIsProfileModalOpen(true)}
         />
 
@@ -342,7 +475,7 @@ export default function App() {
             {/* All Sections Button */}
             <button
               onClick={() => setActiveSectionId('all')}
-              className={`px-3.5 py-1.5 rounded-xl text-xs font-semibold flex items-center gap-1.5 transition-all whitespace-nowrap shadow-2xs ${
+              className={`px-3.5 py-1.5 rounded-xl text-xs font-semibold flex items-center gap-1.5 transition-all whitespace-nowrap shadow-2xs cursor-pointer ${
                 activeSectionId === 'all'
                   ? 'bg-slate-900 text-white shadow-xs'
                   : 'bg-white text-slate-700 hover:bg-slate-100 border border-slate-200'
@@ -367,7 +500,7 @@ export default function App() {
                 <button
                   key={sec.id}
                   onClick={() => setActiveSectionId(sec.id)}
-                  className={`px-3 py-1.5 rounded-xl text-xs font-semibold flex items-center gap-1.5 transition-all whitespace-nowrap shadow-2xs ${
+                  className={`px-3 py-1.5 rounded-xl text-xs font-semibold flex items-center gap-1.5 transition-all whitespace-nowrap shadow-2xs cursor-pointer ${
                     isActive
                       ? 'bg-slate-900 text-white shadow-xs'
                       : 'bg-white text-slate-700 hover:bg-slate-100 border border-slate-200'
@@ -386,11 +519,11 @@ export default function App() {
               );
             })}
 
-            {/* + Add Section Button */}
-            {!isPreviewMode && (
+            {/* + Add Section Button (Owner only) */}
+            {isOwner && (
               <button
                 onClick={handleOpenNewSection}
-                className="px-2.5 py-1.5 rounded-xl text-xs font-medium text-slate-600 hover:text-slate-900 bg-transparent hover:bg-slate-200/60 transition-colors flex items-center gap-1 whitespace-nowrap border border-dashed border-slate-300"
+                className="px-2.5 py-1.5 rounded-xl text-xs font-medium text-slate-600 hover:text-slate-900 bg-transparent hover:bg-slate-200/60 transition-colors flex items-center gap-1 whitespace-nowrap border border-dashed border-slate-300 cursor-pointer"
                 title="Create a new section"
               >
                 <Plus className="w-3.5 h-3.5 text-slate-500" />
@@ -399,14 +532,14 @@ export default function App() {
             )}
           </div>
 
-          {/* Quick Action Button for Add Stuff */}
-          {!isPreviewMode && (
+          {/* Quick Action Button for Add Stuff (Owner only) */}
+          {isOwner && (
             <div className="flex items-center gap-2 shrink-0 self-end md:self-center">
               <button
                 onClick={() =>
                   handleOpenAddItem(activeSectionId !== 'all' ? activeSectionId : sections[0]?.id)
                 }
-                className="px-4 py-2 bg-slate-900 hover:bg-slate-800 text-white rounded-xl text-xs font-semibold flex items-center gap-1.5 transition-all shadow-xs"
+                className="px-4 py-2 bg-slate-900 hover:bg-slate-800 text-white rounded-xl text-xs font-semibold flex items-center gap-1.5 transition-all shadow-xs cursor-pointer"
               >
                 <Plus className="w-3.5 h-3.5 text-amber-300" />
                 <span>+ Add Stuff</span>
@@ -424,57 +557,73 @@ export default function App() {
             </div>
             <button
               onClick={() => setSearchQuery('')}
-              className="font-semibold underline hover:text-amber-950 ml-2"
+              className="font-semibold underline hover:text-amber-950 ml-2 cursor-pointer"
             >
               Clear search
             </button>
           </div>
         )}
 
-        {/* Global Empty State (when completely no items exist in entire app) */}
+        {/* Global Empty State */}
         {items.length === 0 && !searchQuery.trim() ? (
-          <div className="p-8 sm:p-14 border-2 border-dashed border-slate-200 rounded-3xl bg-white text-center space-y-6 max-w-xl mx-auto my-4 shadow-xs">
-            <div className="w-16 h-16 rounded-2xl bg-amber-50 text-amber-600 flex items-center justify-center mx-auto border border-amber-200/70 shadow-xs">
-              <Sparkles className="w-8 h-8" />
-            </div>
+          isOwner ? (
+            /* OWNER EMPTY STATE */
+            <div className="p-8 sm:p-14 border-2 border-dashed border-slate-200 rounded-3xl bg-white text-center space-y-6 max-w-xl mx-auto my-4 shadow-xs">
+              <div className="w-16 h-16 rounded-2xl bg-amber-50 text-amber-600 flex items-center justify-center mx-auto border border-amber-200/70 shadow-xs">
+                <Sparkles className="w-8 h-8" />
+              </div>
 
-            <div className="space-y-2">
-              <h2 className="text-xl sm:text-2xl font-serif-display font-bold text-slate-900">
-                Your portfolio is ready for you to add stuff!
+              <div className="space-y-2">
+                <h2 className="text-xl sm:text-2xl font-serif-display font-bold text-slate-900">
+                  Your portfolio is ready for you to add stuff!
+                </h2>
+                <p className="text-xs sm:text-sm text-slate-500 leading-relaxed max-w-md mx-auto">
+                  Organize your hobbies, activities you did, events, creative works, and photos. Everything is saved automatically and locked from public edits.
+                </p>
+              </div>
+
+              <div className="flex flex-col sm:flex-row items-center justify-center gap-3 pt-2">
+                <button
+                  onClick={() => handleOpenAddItem('activities')}
+                  className="w-full sm:w-auto px-5 py-2.5 bg-slate-900 hover:bg-slate-800 text-white rounded-xl text-xs font-semibold flex items-center justify-center gap-2 transition-all shadow-xs cursor-pointer"
+                >
+                  <Activity className="w-4 h-4 text-emerald-400" />
+                  <span>+ Add to Activities I Did</span>
+                </button>
+
+                <button
+                  onClick={() => handleOpenAddItem('hobbies')}
+                  className="w-full sm:w-auto px-5 py-2.5 bg-white hover:bg-slate-50 text-slate-900 border border-slate-300 rounded-xl text-xs font-semibold flex items-center justify-center gap-2 transition-all shadow-xs cursor-pointer"
+                >
+                  <Heart className="w-4 h-4 text-rose-500" />
+                  <span>+ Add to My Hobbies</span>
+                </button>
+              </div>
+
+              <div className="pt-2">
+                <button
+                  onClick={handleOpenNewSection}
+                  className="text-xs font-medium text-slate-500 hover:text-slate-900 inline-flex items-center gap-1 cursor-pointer"
+                >
+                  <FolderPlus className="w-3.5 h-3.5" />
+                  <span>or create a custom section</span>
+                </button>
+              </div>
+            </div>
+          ) : (
+            /* VISITOR EMPTY STATE (clean, dignified) */
+            <div className="p-8 sm:p-14 border border-slate-200 rounded-3xl bg-white text-center space-y-4 max-w-lg mx-auto my-6 shadow-xs">
+              <div className="w-12 h-12 rounded-2xl bg-indigo-50 text-indigo-600 flex items-center justify-center mx-auto border border-indigo-100">
+                <Sparkles className="w-6 h-6" />
+              </div>
+              <h2 className="text-lg font-serif-display font-bold text-slate-900">
+                Welcome to Sai Varshith Vemuri's Showcase
               </h2>
-              <p className="text-xs sm:text-sm text-slate-500 leading-relaxed max-w-md mx-auto">
-                Organize your hobbies, activities you did, events, creative works, and photos. Everything is saved automatically in your browser.
+              <p className="text-xs sm:text-sm text-slate-500 leading-relaxed max-w-sm mx-auto">
+                Activities, projects, and personal hobbies will be displayed here soon.
               </p>
             </div>
-
-            <div className="flex flex-col sm:flex-row items-center justify-center gap-3 pt-2">
-              <button
-                onClick={() => handleOpenAddItem('activities')}
-                className="w-full sm:w-auto px-5 py-2.5 bg-slate-900 hover:bg-slate-800 text-white rounded-xl text-xs font-semibold flex items-center justify-center gap-2 transition-all shadow-xs"
-              >
-                <Activity className="w-4 h-4 text-emerald-400" />
-                <span>+ Add to Activities I Did</span>
-              </button>
-
-              <button
-                onClick={() => handleOpenAddItem('hobbies')}
-                className="w-full sm:w-auto px-5 py-2.5 bg-white hover:bg-slate-50 text-slate-900 border border-slate-300 rounded-xl text-xs font-semibold flex items-center justify-center gap-2 transition-all shadow-xs"
-              >
-                <Heart className="w-4 h-4 text-rose-500" />
-                <span>+ Add to My Hobbies</span>
-              </button>
-            </div>
-
-            <div className="pt-2">
-              <button
-                onClick={handleOpenNewSection}
-                className="text-xs font-medium text-slate-500 hover:text-slate-900 inline-flex items-center gap-1"
-              >
-                <FolderPlus className="w-3.5 h-3.5" />
-                <span>or create a custom section</span>
-              </button>
-            </div>
-          </div>
+          )
         ) : null}
 
         {/* Render Each Visible Section */}
@@ -483,7 +632,7 @@ export default function App() {
             const sectionItems = getFilteredItemsForSection(section.id);
             const isCustom = !['activities', 'hobbies'].includes(section.id);
 
-            // If we are searching and there are no matching items in this section, hide it
+            // If searching and no items, hide section
             if (searchQuery.trim() && sectionItems.length === 0) {
               return null;
             }
@@ -493,7 +642,7 @@ export default function App() {
                 key={section.id}
                 section={section}
                 items={sectionItems}
-                isPreviewMode={isPreviewMode}
+                isOwner={isOwner}
                 onAddItem={(secId) => handleOpenAddItem(secId)}
                 onEditItem={handleEditItem}
                 onDeleteItem={handleDeleteItem}
@@ -514,7 +663,7 @@ export default function App() {
             </p>
             <button
               onClick={() => setSearchQuery('')}
-              className="px-4 py-2 text-xs font-semibold text-white bg-slate-900 rounded-lg"
+              className="px-4 py-2 text-xs font-semibold text-white bg-slate-900 rounded-lg cursor-pointer"
             >
               Clear Search
             </button>
@@ -533,9 +682,42 @@ export default function App() {
             <span>{sections.length} Sections</span>
             <span>·</span>
             <span>{items.length} Total Items</span>
+            {!isOwner ? (
+              <button
+                onClick={() => setIsOwnerAuthModalOpen(true)}
+                className="text-xs text-slate-400 hover:text-slate-700 underline cursor-pointer"
+              >
+                Owner Access
+              </button>
+            ) : (
+              <button
+                onClick={handleLockOwner}
+                className="text-xs text-amber-600 hover:text-amber-800 font-medium underline cursor-pointer"
+              >
+                Lock Portfolio
+              </button>
+            )}
           </div>
         </div>
       </footer>
+
+      {/* Owner Authentication Modal */}
+      <OwnerAuthModal
+        isOpen={isOwnerAuthModalOpen}
+        onClose={() => setIsOwnerAuthModalOpen(false)}
+        onUnlock={handleUnlockOwner}
+        currentPasscode={currentPasscode}
+        onUpdatePasscode={handleUpdatePasscode}
+      />
+
+      {/* Publish & Hosting Helper Modal */}
+      <PublishModal
+        isOpen={isPublishModalOpen}
+        onClose={() => setIsPublishModalOpen(false)}
+        profile={profile}
+        sections={sections}
+        items={items}
+      />
 
       {/* Item Form Modal (Add / Edit) */}
       <ItemModal

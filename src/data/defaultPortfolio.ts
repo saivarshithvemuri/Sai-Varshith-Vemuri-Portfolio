@@ -1,4 +1,4 @@
-import { Section, UserProfile } from '../types/portfolio';
+import { Section, UserProfile, PortfolioItem } from '../types/portfolio';
 
 export const defaultSections: Section[] = [
   {
@@ -32,5 +32,7 @@ export const initialProfile: UserProfile = {
   github: '',
   linkedin: '',
 };
+
+export const defaultItems: PortfolioItem[] = [];
 
 export const initialBlankProfile = initialProfile;
