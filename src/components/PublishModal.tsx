@@ -93,7 +93,7 @@ export const initialBlankProfile = initialProfile;
             <div className="text-xs text-emerald-900 leading-relaxed">
               <strong>Your site is now protected:</strong>
               <p className="mt-1">
-                Anyone visiting your hosted link will see it in <strong>Read-Only Mode</strong>. They cannot edit your profile, add items, or delete sections. Only you can unlock it using your secret passcode (default: <code className="bg-emerald-100 px-1 py-0.5 rounded font-mono font-bold">1234</code>).
+                Anyone visiting your hosted link will see it in <strong>Read-Only Mode</strong>. They cannot edit your profile, add items, or delete sections. Only you can unlock it using your secret passcode (<code className="bg-emerald-100 px-1 py-0.5 rounded font-mono font-bold">Pleasera**123</code>).
               </p>
             </div>
           </div>

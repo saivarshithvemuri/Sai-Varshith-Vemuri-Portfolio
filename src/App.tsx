@@ -34,13 +34,20 @@ const PROFILE_STORAGE_KEY = 'user_portfolio_profile_v2';
 const OWNER_PASSCODE_STORAGE_KEY = 'sai_portfolio_owner_passcode';
 const OWNER_AUTH_STORAGE_KEY = 'sai_portfolio_is_owner_unlocked';
 
+const DEFAULT_STARTING_PASSCODE = 'Pleasera**123';
+
 export default function App() {
   // 1. Passcode & Owner Authentication State
   const [currentPasscode, setCurrentPasscode] = useState<string>(() => {
     try {
-      return localStorage.getItem(OWNER_PASSCODE_STORAGE_KEY) || '1234';
+      const saved = localStorage.getItem(OWNER_PASSCODE_STORAGE_KEY);
+      if (!saved || saved === '1234') {
+        localStorage.setItem(OWNER_PASSCODE_STORAGE_KEY, DEFAULT_STARTING_PASSCODE);
+        return DEFAULT_STARTING_PASSCODE;
+      }
+      return saved;
     } catch {
-      return '1234';
+      return DEFAULT_STARTING_PASSCODE;
     }
   });
 
@@ -52,13 +59,13 @@ export default function App() {
     }
   });
 
-  // Check URL query parameters for fast owner unlocking (e.g. ?passcode=1234 or ?admin=true)
+  // Check URL query parameters for fast owner unlocking (e.g. ?passcode=Pleasera**123 or ?admin=true)
   useEffect(() => {
     try {
       const params = new URLSearchParams(window.location.search);
       const paramPasscode = params.get('passcode') || params.get('pin');
       const isAdmin = params.get('admin') === 'true' || params.get('owner') === 'true';
-      if (paramPasscode === currentPasscode || (isAdmin && currentPasscode === '1234')) {
+      if (paramPasscode === currentPasscode || (isAdmin && currentPasscode === DEFAULT_STARTING_PASSCODE)) {
         setIsOwner(true);
         localStorage.setItem(OWNER_AUTH_STORAGE_KEY, 'true');
         const cleanUrl = window.location.pathname;

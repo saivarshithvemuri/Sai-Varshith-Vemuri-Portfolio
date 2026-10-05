@@ -1,5 +1,5 @@
 import React, { useState } from 'react';
-import { Lock, Unlock, Key, Check, X, ShieldAlert, ShieldCheck } from 'lucide-react';
+import { Lock, Unlock, Key, Check, X, ShieldAlert, ShieldCheck, Eye, EyeOff } from 'lucide-react';
 
 interface OwnerAuthModalProps {
   isOpen: boolean;
@@ -17,6 +17,7 @@ export const OwnerAuthModal: React.FC<OwnerAuthModalProps> = ({
   onUpdatePasscode,
 }) => {
   const [passcodeInput, setPasscodeInput] = useState('');
+  const [showPassword, setShowPassword] = useState(false);
   const [errorMsg, setErrorMsg] = useState('');
   const [isChangingPasscode, setIsChangingPasscode] = useState(false);
   const [oldPasscode, setOldPasscode] = useState('');
@@ -85,7 +86,7 @@ export const OwnerAuthModal: React.FC<OwnerAuthModalProps> = ({
           </div>
           <button
             onClick={onClose}
-            className="p-1 text-slate-400 hover:text-slate-700 rounded-lg transition-colors"
+            className="p-1 text-slate-400 hover:text-slate-700 rounded-lg transition-colors cursor-pointer"
           >
             <X className="w-5 h-5" />
           </button>
@@ -95,13 +96,15 @@ export const OwnerAuthModal: React.FC<OwnerAuthModalProps> = ({
         {!isChangingPasscode ? (
           <form onSubmit={handleUnlockSubmit} className="p-6 space-y-4">
             <div className="space-y-1.5">
-              <label className="text-xs font-semibold text-slate-700">
-                Passcode (Default: <code className="bg-slate-100 px-1 py-0.5 rounded text-indigo-700">1234</code>)
-              </label>
+              <div className="flex items-center justify-between">
+                <label className="text-xs font-semibold text-slate-700">
+                  Owner Passcode
+                </label>
+              </div>
               <div className="relative">
                 <Key className="w-4 h-4 absolute left-3 top-1/2 -translate-y-1/2 text-slate-400" />
                 <input
-                  type="password"
+                  type={showPassword ? 'text' : 'password'}
                   autoFocus
                   required
                   value={passcodeInput}
@@ -110,8 +113,16 @@ export const OwnerAuthModal: React.FC<OwnerAuthModalProps> = ({
                     setErrorMsg('');
                   }}
                   placeholder="Enter passcode..."
-                  className="w-full pl-9 pr-3 py-2 bg-slate-50 border border-slate-300 rounded-lg text-sm text-slate-900 focus:bg-white focus:outline-slate-900"
+                  className="w-full pl-9 pr-10 py-2 bg-slate-50 border border-slate-300 rounded-lg text-sm text-slate-900 focus:bg-white focus:outline-slate-900"
                 />
+                <button
+                  type="button"
+                  onClick={() => setShowPassword(!showPassword)}
+                  className="absolute right-2.5 top-1/2 -translate-y-1/2 text-slate-400 hover:text-slate-700 p-1 cursor-pointer"
+                  title={showPassword ? 'Hide passcode' : 'Show passcode'}
+                >
+                  {showPassword ? <EyeOff className="w-4 h-4" /> : <Eye className="w-4 h-4" />}
+                </button>
               </div>
             </div>
 
