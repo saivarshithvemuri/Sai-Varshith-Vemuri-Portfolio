@@ -5,11 +5,25 @@ import { Header } from './components/Header';
 import { ProfileBanner } from './components/ProfileBanner';
 import { ProfileModal } from './components/ProfileModal';
 import { SectionBlock } from './components/SectionBlock';
+import { ClassyTabs } from './components/ClassyTabs';
 import { ItemModal } from './components/ItemModal';
 import { NewSectionModal } from './components/NewSectionModal';
 import { PhotoLightbox } from './components/PhotoLightbox';
 import { OwnerAuthModal } from './components/OwnerAuthModal';
 import { PublishModal } from './components/PublishModal';
+import {
+  testFirestoreConnection,
+  subscribeToProfile,
+  subscribeToSections,
+  subscribeToItems,
+  syncSaveProfile,
+  syncSaveSection,
+  syncDeleteSection,
+  syncSaveItem,
+  syncDeleteItem,
+  auth,
+} from './firebase';
+import { onAuthStateChanged } from 'firebase/auth';
 import {
   Plus,
   FolderPlus,
@@ -26,6 +40,7 @@ import {
   Lock,
   Globe,
   ShieldCheck,
+  CloudCheck,
 } from 'lucide-react';
 
 const SECTIONS_STORAGE_KEY = 'user_custom_sections_v2';
@@ -58,23 +73,6 @@ export default function App() {
       return false;
     }
   });
-
-  // Check URL query parameters for fast owner unlocking (e.g. ?passcode=Pleasera**123 or ?admin=true)
-  useEffect(() => {
-    try {
-      const params = new URLSearchParams(window.location.search);
-      const paramPasscode = params.get('passcode') || params.get('pin');
-      const isAdmin = params.get('admin') === 'true' || params.get('owner') === 'true';
-      if (paramPasscode === currentPasscode || (isAdmin && currentPasscode === DEFAULT_STARTING_PASSCODE)) {
-        setIsOwner(true);
-        localStorage.setItem(OWNER_AUTH_STORAGE_KEY, 'true');
-        const cleanUrl = window.location.pathname;
-        window.history.replaceState({}, document.title, cleanUrl);
-      }
-    } catch (e) {
-      console.error(e);
-    }
-  }, [currentPasscode]);
 
   // 2. Sections state
   const [sections, setSections] = useState<Section[]>(() => {
@@ -123,32 +121,81 @@ export default function App() {
     return initialProfile;
   });
 
-  // Try fetching published data for public visitors on any host
+  // Check URL query parameters for fast owner unlocking (e.g. ?passcode=Pleasera**123 or ?admin=true)
   useEffect(() => {
-    const hasLocalItems = localStorage.getItem(ITEMS_STORAGE_KEY);
-    if (!hasLocalItems) {
-      fetch('./portfolioData.json')
-        .then((res) => {
-          if (res.ok) return res.json();
-          throw new Error('No published portfolioData.json');
-        })
-        .then((data) => {
-          if (data) {
-            if (Array.isArray(data.items) && data.items.length > 0) {
-              setItems(data.items);
-            }
-            if (Array.isArray(data.sections) && data.sections.length > 0) {
-              setSections(data.sections);
-            }
-            if (data.profile) {
-              setProfile((prev) => ({ ...prev, ...data.profile }));
-            }
-          }
-        })
-        .catch(() => {
-          // Fallback to default
-        });
+    try {
+      const params = new URLSearchParams(window.location.search);
+      const paramPasscode = params.get('passcode') || params.get('pin');
+      const isAdmin = params.get('admin') === 'true' || params.get('owner') === 'true';
+      if (paramPasscode === currentPasscode || (isAdmin && currentPasscode === DEFAULT_STARTING_PASSCODE)) {
+        setIsOwner(true);
+        localStorage.setItem(OWNER_AUTH_STORAGE_KEY, 'true');
+        const cleanUrl = window.location.pathname;
+        window.history.replaceState({}, document.title, cleanUrl);
+      }
+    } catch (e) {
+      console.error(e);
     }
+  }, [currentPasscode]);
+
+  // Firebase Auth listener
+  useEffect(() => {
+    const unsubscribe = onAuthStateChanged(auth, (user) => {
+      if (user) {
+        setIsOwner(true);
+        localStorage.setItem(OWNER_AUTH_STORAGE_KEY, 'true');
+      }
+    });
+    return () => unsubscribe();
+  }, []);
+
+  // REAL-TIME FIRESTORE SUBSCRIPTIONS (Every device & visitor updates live!)
+  useEffect(() => {
+    testFirestoreConnection();
+
+    // 1. Profile real-time listener
+    const unsubProfile = subscribeToProfile((remoteProfile) => {
+      if (remoteProfile) {
+        setProfile((prev) => ({
+          ...prev,
+          ...remoteProfile,
+          name: remoteProfile.name || 'Sai Varshith Vemuri',
+        }));
+        try {
+          localStorage.setItem(PROFILE_STORAGE_KEY, JSON.stringify(remoteProfile));
+        } catch (e) {
+          console.error(e);
+        }
+      }
+    });
+
+    // 2. Sections real-time listener
+    const unsubSections = subscribeToSections((remoteSections) => {
+      if (remoteSections && remoteSections.length > 0) {
+        setSections(remoteSections);
+        try {
+          localStorage.setItem(SECTIONS_STORAGE_KEY, JSON.stringify(remoteSections));
+        } catch (e) {
+          console.error(e);
+        }
+      }
+    });
+
+    // 3. Items real-time listener (all visitors immediately see new additions!)
+    const unsubItems = subscribeToItems((remoteItems) => {
+      setItems(remoteItems);
+      try {
+        localStorage.setItem(ITEMS_STORAGE_KEY, JSON.stringify(remoteItems));
+      } catch (e) {
+        console.error(e);
+      }
+    });
+
+    return () => {
+      unsubProfile();
+      unsubSections();
+      unsubItems();
+    };
   }, []);
 
   // Navigation & filter state
@@ -180,35 +227,6 @@ export default function App() {
     setTimeout(() => setToastMessage(null), 3500);
   };
 
-  // Sync to localStorage
-  const saveSections = (newSections: Section[]) => {
-    setSections(newSections);
-    try {
-      localStorage.setItem(SECTIONS_STORAGE_KEY, JSON.stringify(newSections));
-    } catch (e) {
-      console.error(e);
-    }
-  };
-
-  const saveItems = (newItems: PortfolioItem[]) => {
-    setItems(newItems);
-    try {
-      localStorage.setItem(ITEMS_STORAGE_KEY, JSON.stringify(newItems));
-    } catch (e) {
-      console.error(e);
-    }
-  };
-
-  const saveProfile = (newProfile: UserProfile) => {
-    setProfile(newProfile);
-    try {
-      localStorage.setItem(PROFILE_STORAGE_KEY, JSON.stringify(newProfile));
-      showToast('Profile updated!');
-    } catch (e) {
-      console.error(e);
-    }
-  };
-
   // Owner Mode Auth handlers
   const handleUnlockOwner = () => {
     setIsOwner(true);
@@ -217,7 +235,7 @@ export default function App() {
     } catch (e) {
       console.error(e);
     }
-    showToast('Unlocked Owner Mode. You can now edit your portfolio!');
+    showToast('Unlocked Owner Mode. Your edits will update live for all visitors!');
   };
 
   const handleLockOwner = () => {
@@ -240,7 +258,7 @@ export default function App() {
     showToast('Passcode updated!');
   };
 
-  // Item operations
+  // Item operations - Saves directly to Firestore cloud database
   const handleOpenAddItem = (sectionId?: string) => {
     const defaultSec = sectionId || (sections[0]?.id ?? 'activities');
     setTargetSectionId(defaultSec);
@@ -254,24 +272,48 @@ export default function App() {
     setIsItemModalOpen(true);
   };
 
-  const handleSaveItem = (item: PortfolioItem) => {
+  const handleSaveItem = async (item: PortfolioItem) => {
+    // 1. Optimistic local update
     const existingIndex = items.findIndex((i) => i.id === item.id);
     let updated: PortfolioItem[];
     if (existingIndex >= 0) {
       updated = [...items];
       updated[existingIndex] = item;
-      showToast(`Updated "${item.title}"`);
+      showToast(`Updated "${item.title}" - syncing live...`);
     } else {
       updated = [item, ...items];
-      showToast(`Added "${item.title}" with ${item.photos.length} photo(s)`);
+      showToast(`Added "${item.title}" - now live for all visitors!`);
     }
-    saveItems(updated);
+    setItems(updated);
+    try {
+      localStorage.setItem(ITEMS_STORAGE_KEY, JSON.stringify(updated));
+    } catch (e) {
+      console.error(e);
+    }
+
+    // 2. Real-time Cloud Save
+    try {
+      await syncSaveItem(item, currentPasscode);
+    } catch (err) {
+      console.error('Failed to sync item to Firestore:', err);
+    }
   };
 
-  const handleDeleteItem = (id: string) => {
+  const handleDeleteItem = async (id: string) => {
     const updated = items.filter((i) => i.id !== id);
-    saveItems(updated);
-    showToast('Item deleted.');
+    setItems(updated);
+    try {
+      localStorage.setItem(ITEMS_STORAGE_KEY, JSON.stringify(updated));
+    } catch (e) {
+      console.error(e);
+    }
+    showToast('Item deleted live.');
+
+    try {
+      await syncDeleteItem(id);
+    } catch (err) {
+      console.error('Failed to delete item from Firestore:', err);
+    }
   };
 
   // Section operations
@@ -285,30 +327,64 @@ export default function App() {
     setIsSectionModalOpen(true);
   };
 
-  const handleSaveSection = (savedSection: Section) => {
+  const handleSaveSection = async (savedSection: Section) => {
     const existingIndex = sections.findIndex((s) => s.id === savedSection.id);
+    let updated: Section[];
     if (existingIndex >= 0) {
-      const updated = [...sections];
+      updated = [...sections];
       updated[existingIndex] = savedSection;
-      saveSections(updated);
-      showToast(`Updated section "${savedSection.name}"`);
+      showToast(`Updated section "${savedSection.name}" live.`);
     } else {
-      const updated = [...sections, savedSection];
-      saveSections(updated);
+      updated = [...sections, savedSection];
       setActiveSectionId(savedSection.id);
-      showToast(`Created section "${savedSection.name}"`);
+      showToast(`Created section "${savedSection.name}" live.`);
+    }
+    setSections(updated);
+    try {
+      localStorage.setItem(SECTIONS_STORAGE_KEY, JSON.stringify(updated));
+    } catch (e) {
+      console.error(e);
+    }
+
+    try {
+      await syncSaveSection(savedSection, currentPasscode);
+    } catch (err) {
+      console.error('Failed to sync section to Firestore:', err);
     }
   };
 
-  const handleDeleteSection = (sectionId: string) => {
+  const handleDeleteSection = async (sectionId: string) => {
     const updatedSections = sections.filter((s) => s.id !== sectionId);
-    saveSections(updatedSections);
+    setSections(updatedSections);
     const updatedItems = items.filter((i) => i.sectionId !== sectionId);
-    saveItems(updatedItems);
+    setItems(updatedItems);
     if (activeSectionId === sectionId) {
       setActiveSectionId('all');
     }
-    showToast('Section and its items deleted.');
+    showToast('Section and its items deleted live.');
+
+    try {
+      await syncDeleteSection(sectionId);
+    } catch (err) {
+      console.error('Failed to delete section from Firestore:', err);
+    }
+  };
+
+  // Profile save
+  const handleSaveProfile = async (newProfile: UserProfile) => {
+    setProfile(newProfile);
+    try {
+      localStorage.setItem(PROFILE_STORAGE_KEY, JSON.stringify(newProfile));
+      showToast('Profile updated live!');
+    } catch (e) {
+      console.error(e);
+    }
+
+    try {
+      await syncSaveProfile(newProfile, currentPasscode);
+    } catch (err) {
+      console.error('Failed to sync profile to Firestore:', err);
+    }
   };
 
   // Lightbox
@@ -318,7 +394,7 @@ export default function App() {
     setIsLightboxOpen(true);
   };
 
-  // Backup / Data management
+  // Backup / Data export
   const handleExportJSON = () => {
     const backup = {
       profile,
@@ -342,13 +418,23 @@ export default function App() {
     const file = e.target.files?.[0];
     if (!file) return;
     const reader = new FileReader();
-    reader.onload = (event) => {
+    reader.onload = async (event) => {
       try {
         const parsed = JSON.parse(event.target?.result as string);
-        if (parsed.profile) saveProfile(parsed.profile);
-        if (Array.isArray(parsed.sections)) saveSections(parsed.sections);
-        if (Array.isArray(parsed.items)) saveItems(parsed.items);
-        showToast('Backup restored successfully!');
+        if (parsed.profile) await handleSaveProfile(parsed.profile);
+        if (Array.isArray(parsed.sections)) {
+          for (const s of parsed.sections) {
+            await syncSaveSection(s, currentPasscode);
+          }
+          setSections(parsed.sections);
+        }
+        if (Array.isArray(parsed.items)) {
+          for (const i of parsed.items) {
+            await syncSaveItem(i, currentPasscode);
+          }
+          setItems(parsed.items);
+        }
+        showToast('Backup restored and synced to cloud!');
       } catch (err) {
         alert('Invalid JSON file format.');
       }
@@ -357,14 +443,14 @@ export default function App() {
   };
 
   const handleClearAll = () => {
-    if (confirm('Clear everything? This will remove all your entries and reset sections to default.')) {
+    if (confirm('Clear everything? This will remove all your entries and reset sections.')) {
       setSections(defaultSections);
       setItems([]);
       setProfile(initialProfile);
       localStorage.removeItem(SECTIONS_STORAGE_KEY);
       localStorage.removeItem(ITEMS_STORAGE_KEY);
       localStorage.removeItem(PROFILE_STORAGE_KEY);
-      showToast('All data cleared.');
+      showToast('All local data cleared.');
     }
   };
 
@@ -417,16 +503,16 @@ export default function App() {
   };
 
   return (
-    <div className="min-h-screen bg-[#FAF9F5] text-slate-800 flex flex-col font-sans selection:bg-amber-100 selection:text-amber-900">
-      {/* Owner Mode Status Banner (only shown when Owner is logged in) */}
+    <div className="min-h-screen bg-[#FAF8F5] text-stone-900 flex flex-col font-sans selection:bg-amber-100 selection:text-amber-900">
+      {/* Curator Mode Status Banner */}
       {isOwner && (
-        <aside aria-label="Owner status banner" className="bg-slate-900 text-white text-xs py-2 px-4 border-b border-slate-800 no-print">
+        <aside aria-label="Curator status banner" className="bg-stone-900 text-stone-200 text-xs py-2 px-4 border-b border-stone-800 no-print">
           <div className="max-w-6xl mx-auto flex items-center justify-between gap-3">
             <div className="flex items-center gap-2">
               <span className="w-2 h-2 rounded-full bg-emerald-400 animate-pulse shrink-0" />
-              <span className="font-semibold text-emerald-300">Owner Mode Active:</span>
-              <span className="text-slate-300 hidden sm:inline">
-                You can edit anything. Visitors see your site strictly in Read-Only Mode.
+              <span className="font-semibold text-emerald-300">Live Cloud Sync Active:</span>
+              <span className="text-stone-300 hidden sm:inline">
+                Anything you add or edit updates instantly for all visitors worldwide.
               </span>
             </div>
             <div className="flex items-center gap-3">
@@ -435,11 +521,11 @@ export default function App() {
                 className="text-xs text-amber-300 hover:text-amber-200 underline font-medium cursor-pointer flex items-center gap-1"
               >
                 <Globe className="w-3.5 h-3.5" />
-                <span>Publish for Free Hoster</span>
+                <span>Hosting Guide</span>
               </button>
               <button
                 onClick={handleLockOwner}
-                className="px-2.5 py-1 bg-slate-800 hover:bg-slate-700 text-slate-200 rounded text-[11px] font-medium transition-colors cursor-pointer flex items-center gap-1 border border-slate-700"
+                className="px-2.5 py-1 bg-stone-800 hover:bg-stone-700 text-stone-200 rounded-lg text-[11px] font-medium transition-colors cursor-pointer flex items-center gap-1 border border-stone-700"
               >
                 <Lock className="w-3 h-3 text-amber-400" />
                 <span>Lock View</span>
@@ -467,104 +553,37 @@ export default function App() {
       />
 
       {/* Main Content Area */}
-      <main className="max-w-6xl mx-auto px-4 sm:px-6 py-6 sm:py-8 flex-1 w-full space-y-7">
+      <main className="max-w-6xl mx-auto px-4 sm:px-6 py-6 sm:py-8 flex-1 w-full space-y-8">
         {/* Profile Card / Header Banner */}
         <ProfileBanner
           profile={profile}
           isOwner={isOwner}
           onEditProfile={() => setIsProfileModalOpen(true)}
+          totalItemsCount={items.length}
+          totalSectionsCount={sections.length}
         />
 
-        {/* Section Navigation Tabs & Action Bar */}
-        <div className="flex flex-col md:flex-row items-stretch md:items-center justify-between gap-3 pt-1 border-b border-slate-200/80 pb-4">
-          {/* Scrollable Pills for Sections */}
-          <div className="flex items-center gap-1.5 overflow-x-auto pb-1 sm:pb-0 scrollbar-none">
-            {/* All Sections Button */}
-            <button
-              onClick={() => setActiveSectionId('all')}
-              className={`px-3.5 py-1.5 rounded-xl text-xs font-semibold flex items-center gap-1.5 transition-all whitespace-nowrap shadow-2xs cursor-pointer ${
-                activeSectionId === 'all'
-                  ? 'bg-slate-900 text-white shadow-xs'
-                  : 'bg-white text-slate-700 hover:bg-slate-100 border border-slate-200'
-              }`}
-            >
-              <Layers className="w-3.5 h-3.5" />
-              <span>All Sections</span>
-              <span
-                className={`text-[10px] px-1.5 py-0.2 rounded-full ${
-                  activeSectionId === 'all' ? 'bg-slate-700 text-white' : 'bg-slate-100 text-slate-600'
-                }`}
-              >
-                {items.length}
-              </span>
-            </button>
-
-            {/* Individual Section Pills */}
-            {sections.map((sec) => {
-              const secItemCount = items.filter((i) => i.sectionId === sec.id).length;
-              const isActive = activeSectionId === sec.id;
-              return (
-                <button
-                  key={sec.id}
-                  onClick={() => setActiveSectionId(sec.id)}
-                  className={`px-3 py-1.5 rounded-xl text-xs font-semibold flex items-center gap-1.5 transition-all whitespace-nowrap shadow-2xs cursor-pointer ${
-                    isActive
-                      ? 'bg-slate-900 text-white shadow-xs'
-                      : 'bg-white text-slate-700 hover:bg-slate-100 border border-slate-200'
-                  }`}
-                >
-                  {getSectionIconSmall(sec.iconName)}
-                  <span>{sec.name}</span>
-                  <span
-                    className={`text-[10px] px-1.5 py-0.2 rounded-full ${
-                      isActive ? 'bg-slate-700 text-white' : 'bg-slate-100 text-slate-600'
-                    }`}
-                  >
-                    {secItemCount}
-                  </span>
-                </button>
-              );
-            })}
-
-            {/* + Add Section Button (Owner only) */}
-            {isOwner && (
-              <button
-                onClick={handleOpenNewSection}
-                className="px-2.5 py-1.5 rounded-xl text-xs font-medium text-slate-600 hover:text-slate-900 bg-transparent hover:bg-slate-200/60 transition-colors flex items-center gap-1 whitespace-nowrap border border-dashed border-slate-300 cursor-pointer"
-                title="Create a new section"
-              >
-                <Plus className="w-3.5 h-3.5 text-slate-500" />
-                <span>New Section</span>
-              </button>
-            )}
-          </div>
-
-          {/* Quick Action Button for Add Stuff (Owner only) */}
-          {isOwner && (
-            <div className="flex items-center gap-2 shrink-0 self-end md:self-center">
-              <button
-                onClick={() =>
-                  handleOpenAddItem(activeSectionId !== 'all' ? activeSectionId : sections[0]?.id)
-                }
-                className="px-4 py-2 bg-slate-900 hover:bg-slate-800 text-white rounded-xl text-xs font-semibold flex items-center gap-1.5 transition-all shadow-xs cursor-pointer"
-              >
-                <Plus className="w-3.5 h-3.5 text-amber-300" />
-                <span>+ Add Stuff</span>
-              </button>
-            </div>
-          )}
-        </div>
+        {/* Classy & Rich Navigation Tabs for Activities, Hobbies, etc. */}
+        <ClassyTabs
+          sections={sections}
+          items={items}
+          activeSectionId={activeSectionId}
+          onSelectSection={setActiveSectionId}
+          isOwner={isOwner}
+          onOpenNewSection={handleOpenNewSection}
+          onAddNewItem={handleOpenAddItem}
+        />
 
         {/* Search Active Indicator */}
         {searchQuery.trim() && (
-          <div className="bg-amber-50 border border-amber-200 rounded-xl px-4 py-2.5 text-xs text-amber-900 flex items-center justify-between">
+          <div className="bg-amber-50/90 border border-amber-200/90 rounded-2xl px-4 py-3 text-xs text-amber-950 flex items-center justify-between shadow-2xs">
             <div>
               Showing search results for <strong className="font-semibold">"{searchQuery}"</strong> (
-              {totalMatchingItems} matching items)
+              {totalMatchingItems} matching entries)
             </div>
             <button
               onClick={() => setSearchQuery('')}
-              className="font-semibold underline hover:text-amber-950 ml-2 cursor-pointer"
+              className="font-semibold underline hover:text-amber-900 ml-2 cursor-pointer"
             >
               Clear search
             </button>
@@ -575,24 +594,24 @@ export default function App() {
         {items.length === 0 && !searchQuery.trim() ? (
           isOwner ? (
             /* OWNER EMPTY STATE */
-            <div className="p-8 sm:p-14 border-2 border-dashed border-slate-200 rounded-3xl bg-white text-center space-y-6 max-w-xl mx-auto my-4 shadow-xs">
-              <div className="w-16 h-16 rounded-2xl bg-amber-50 text-amber-600 flex items-center justify-center mx-auto border border-amber-200/70 shadow-xs">
+            <div className="p-8 sm:p-14 border border-stone-300 border-dashed rounded-3xl bg-white text-center space-y-6 max-w-xl mx-auto my-4 shadow-xs">
+              <div className="w-16 h-16 rounded-2xl bg-amber-50 text-amber-700 flex items-center justify-center mx-auto border border-amber-200/70 shadow-2xs">
                 <Sparkles className="w-8 h-8" />
               </div>
 
               <div className="space-y-2">
-                <h2 className="text-xl sm:text-2xl font-serif-display font-bold text-slate-900">
-                  Your portfolio is ready for you to add stuff!
+                <h2 className="text-2xl sm:text-3xl font-serif-display font-normal text-stone-900 tracking-tight">
+                  Your portfolio is ready for curation
                 </h2>
-                <p className="text-xs sm:text-sm text-slate-500 leading-relaxed max-w-md mx-auto">
-                  Organize your hobbies, activities you did, events, creative works, and photos. Everything is saved automatically and locked from public edits.
+                <p className="text-xs sm:text-sm text-stone-600 leading-relaxed max-w-md mx-auto font-light">
+                  Document your activities, milestones, creative hobbies, and photographs. Every addition is saved directly to the live cloud database and updates in real time for any visitor.
                 </p>
               </div>
 
               <div className="flex flex-col sm:flex-row items-center justify-center gap-3 pt-2">
                 <button
                   onClick={() => handleOpenAddItem('activities')}
-                  className="w-full sm:w-auto px-5 py-2.5 bg-slate-900 hover:bg-slate-800 text-white rounded-xl text-xs font-semibold flex items-center justify-center gap-2 transition-all shadow-xs cursor-pointer"
+                  className="w-full sm:w-auto px-5 py-2.5 bg-stone-900 hover:bg-stone-850 text-amber-200 border border-amber-400/25 rounded-xl text-xs font-semibold flex items-center justify-center gap-2 transition-all shadow-xs cursor-pointer"
                 >
                   <Activity className="w-4 h-4 text-emerald-400" />
                   <span>+ Add to Activities I Did</span>
@@ -600,7 +619,7 @@ export default function App() {
 
                 <button
                   onClick={() => handleOpenAddItem('hobbies')}
-                  className="w-full sm:w-auto px-5 py-2.5 bg-white hover:bg-slate-50 text-slate-900 border border-slate-300 rounded-xl text-xs font-semibold flex items-center justify-center gap-2 transition-all shadow-xs cursor-pointer"
+                  className="w-full sm:w-auto px-5 py-2.5 bg-white hover:bg-stone-50 text-stone-900 border border-stone-300 rounded-xl text-xs font-semibold flex items-center justify-center gap-2 transition-all shadow-xs cursor-pointer"
                 >
                   <Heart className="w-4 h-4 text-rose-500" />
                   <span>+ Add to My Hobbies</span>
@@ -610,31 +629,31 @@ export default function App() {
               <div className="pt-2">
                 <button
                   onClick={handleOpenNewSection}
-                  className="text-xs font-medium text-slate-500 hover:text-slate-900 inline-flex items-center gap-1 cursor-pointer"
+                  className="text-xs font-medium text-stone-500 hover:text-stone-900 inline-flex items-center gap-1 cursor-pointer"
                 >
                   <FolderPlus className="w-3.5 h-3.5" />
-                  <span>or create a custom section</span>
+                  <span>or curate a new custom section</span>
                 </button>
               </div>
             </div>
           ) : (
             /* VISITOR EMPTY STATE (clean, dignified) */
-            <div className="p-8 sm:p-14 border border-slate-200 rounded-3xl bg-white text-center space-y-4 max-w-lg mx-auto my-6 shadow-xs">
-              <div className="w-12 h-12 rounded-2xl bg-indigo-50 text-indigo-600 flex items-center justify-center mx-auto border border-indigo-100">
-                <Sparkles className="w-6 h-6" />
+            <div className="p-8 sm:p-14 border border-stone-200/90 rounded-3xl bg-white text-center space-y-4 max-w-lg mx-auto my-6 shadow-xs">
+              <div className="w-14 h-14 rounded-2xl bg-[#F6F3ED] text-stone-700 flex items-center justify-center mx-auto border border-stone-200">
+                <span className="font-serif-display text-2xl font-bold text-amber-800">SV</span>
               </div>
-              <h2 className="text-lg font-serif-display font-bold text-slate-900">
-                Welcome to Sai Varshith Vemuri's Showcase
+              <h2 className="text-xl sm:text-2xl font-serif-display font-normal text-stone-900">
+                Welcome to Sai Varshith Vemuri's Portfolio
               </h2>
-              <p className="text-xs sm:text-sm text-slate-500 leading-relaxed max-w-sm mx-auto">
-                Activities, projects, and personal hobbies will be displayed here soon.
+              <p className="text-xs sm:text-sm text-stone-600 leading-relaxed max-w-sm mx-auto font-light">
+                Activities, projects, and personal hobbies are currently being curated. Check back soon for published archives.
               </p>
             </div>
           )
         ) : null}
 
         {/* Render Each Visible Section */}
-        <div className="space-y-12">
+        <div className="space-y-14">
           {visibleSections.map((section) => {
             const sectionItems = getFilteredItemsForSection(section.id);
             const isCustom = !['activities', 'hobbies'].includes(section.id);
@@ -664,13 +683,13 @@ export default function App() {
 
         {/* When search yields 0 items */}
         {searchQuery.trim() && totalMatchingItems === 0 && (
-          <div className="text-center py-16 bg-white border border-slate-200 rounded-2xl p-8 space-y-3">
-            <p className="text-slate-600 font-medium text-sm">
-              No hobbies or activities found matching "{searchQuery}".
+          <div className="text-center py-16 bg-white border border-stone-200 rounded-3xl p-8 space-y-3 shadow-xs">
+            <p className="text-stone-600 font-medium text-sm">
+              No entries found matching "{searchQuery}".
             </p>
             <button
               onClick={() => setSearchQuery('')}
-              className="px-4 py-2 text-xs font-semibold text-white bg-slate-900 rounded-lg cursor-pointer"
+              className="px-4 py-2 text-xs font-semibold text-amber-200 bg-stone-900 rounded-xl cursor-pointer"
             >
               Clear Search
             </button>
@@ -679,27 +698,32 @@ export default function App() {
       </main>
 
       {/* Footer */}
-      <footer className="mt-auto border-t border-slate-200/80 py-8 bg-white text-center text-xs text-slate-400 no-print">
+      <footer className="mt-auto border-t border-stone-200/80 py-8 bg-[#FAF8F5] text-center text-xs text-stone-500 no-print">
         <div className="max-w-6xl mx-auto px-4 flex flex-col sm:flex-row items-center justify-between gap-3">
-          <p>
-            {profile.name ? `${profile.name} · ` : ''}
-            Digital Activity & Hobby Portfolio
-          </p>
-          <div className="flex items-center gap-4 text-slate-500">
-            <span>{sections.length} Sections</span>
+          <div className="flex items-center gap-2">
+            <span className="font-serif-display text-sm text-stone-800">
+              {profile.name ? `${profile.name} · ` : ''}Digital Portfolio & Candidate Dossier
+            </span>
+            <span className="inline-flex items-center gap-1 text-[11px] text-emerald-700 font-mono font-medium bg-emerald-50 px-2 py-0.5 rounded-full border border-emerald-200/60">
+              <span className="w-1.5 h-1.5 rounded-full bg-emerald-500 animate-pulse"></span>
+              Live Synced
+            </span>
+          </div>
+          <div className="flex items-center gap-4 text-stone-500 font-mono text-[11px]">
+            <span>{sections.length} Collections</span>
             <span>·</span>
-            <span>{items.length} Total Items</span>
+            <span>{items.length} Entries</span>
             {!isOwner ? (
               <button
                 onClick={() => setIsOwnerAuthModalOpen(true)}
-                className="text-xs text-slate-400 hover:text-slate-700 underline cursor-pointer"
+                className="text-stone-400 hover:text-stone-800 underline cursor-pointer"
               >
-                Owner Access
+                Curator Sign-in
               </button>
             ) : (
               <button
                 onClick={handleLockOwner}
-                className="text-xs text-amber-600 hover:text-amber-800 font-medium underline cursor-pointer"
+                className="text-amber-800 hover:text-amber-950 font-medium underline cursor-pointer"
               >
                 Lock Portfolio
               </button>
@@ -755,7 +779,7 @@ export default function App() {
         isOpen={isProfileModalOpen}
         onClose={() => setIsProfileModalOpen(false)}
         profile={profile}
-        onSave={saveProfile}
+        onSave={handleSaveProfile}
       />
 
       {/* Fullscreen Photo Lightbox */}

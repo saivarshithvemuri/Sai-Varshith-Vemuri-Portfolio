@@ -16,6 +16,7 @@ import {
   Pencil,
   Trash2,
   MoreVertical,
+  FolderOpen,
 } from 'lucide-react';
 
 interface SectionBlockProps {
@@ -31,26 +32,26 @@ interface SectionBlockProps {
   isCustomSection: boolean;
 }
 
-const renderSectionIcon = (iconName: string, className = 'w-5 h-5') => {
+const renderSectionIcon = (iconName: string, className = 'w-4 h-4') => {
   switch (iconName) {
     case 'heart':
-      return <Heart className={`${className} text-rose-500`} />;
+      return <Heart className={`${className} text-rose-600`} />;
     case 'activity':
-      return <Activity className={`${className} text-emerald-600`} />;
+      return <Activity className={`${className} text-emerald-700`} />;
     case 'code':
-      return <Code className={`${className} text-indigo-500`} />;
+      return <Code className={`${className} text-sky-700`} />;
     case 'trophy':
-      return <Trophy className={`${className} text-amber-500`} />;
+      return <Trophy className={`${className} text-amber-600`} />;
     case 'palette':
-      return <Palette className={`${className} text-fuchsia-500`} />;
+      return <Palette className={`${className} text-fuchsia-600`} />;
     case 'book':
-      return <BookOpen className={`${className} text-sky-600`} />;
+      return <BookOpen className={`${className} text-amber-800`} />;
     case 'music':
-      return <Music className={`${className} text-violet-500`} />;
+      return <Music className={`${className} text-violet-600`} />;
     case 'camera':
-      return <Camera className={`${className} text-teal-500`} />;
+      return <Camera className={`${className} text-teal-600`} />;
     default:
-      return <Sparkles className={`${className} text-amber-500`} />;
+      return <Sparkles className={`${className} text-amber-600`} />;
   }
 };
 
@@ -69,24 +70,24 @@ export const SectionBlock: React.FC<SectionBlockProps> = ({
   const [showMenu, setShowMenu] = useState(false);
 
   return (
-    <section id={`sec-${section.id}`} className="space-y-4 scroll-mt-24">
+    <section id={`sec-${section.id}`} className="space-y-5 scroll-mt-24 pt-2">
       {/* Section Header */}
-      <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3 pb-3 border-b border-slate-200/90">
-        <div className="flex items-center gap-3">
-          <div className="w-10 h-10 rounded-xl bg-white border border-slate-200 shadow-2xs flex items-center justify-center shrink-0">
+      <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3 pb-3 border-b border-[#E7E2D9]">
+        <div className="flex items-center gap-3.5">
+          <div className="w-10 h-10 rounded-xl bg-white border border-stone-200/90 shadow-2xs flex items-center justify-center shrink-0">
             {renderSectionIcon(section.iconName, 'w-5 h-5')}
           </div>
           <div>
-            <div className="flex items-center gap-2.5">
-              <h2 className="text-xl sm:text-2xl font-serif-display font-bold text-slate-900 tracking-tight">
+            <div className="flex items-center gap-3">
+              <h2 className="text-xl sm:text-2xl md:text-3xl font-serif-display font-normal text-stone-900 tracking-tight">
                 {section.name}
               </h2>
-              <span className="text-xs font-semibold px-2.5 py-0.5 rounded-full bg-slate-100 text-slate-600 border border-slate-200/60">
-                {items.length} {items.length === 1 ? 'item' : 'items'}
+              <span className="text-xs font-mono text-stone-500 bg-stone-100/90 border border-stone-200/60 px-2.5 py-0.5 rounded-full">
+                {items.length} {items.length === 1 ? 'entry' : 'entries'}
               </span>
             </div>
             {section.description && (
-              <p className="text-xs sm:text-sm text-slate-500 mt-0.5">
+              <p className="text-xs sm:text-sm text-stone-600 mt-0.5 font-light max-w-3xl">
                 {section.description}
               </p>
             )}
@@ -98,17 +99,18 @@ export const SectionBlock: React.FC<SectionBlockProps> = ({
           <div className="flex items-center gap-2 self-start sm:self-center shrink-0 no-print">
             <button
               onClick={() => onAddItem(section.id)}
-              className="px-3.5 py-1.5 text-xs font-semibold text-slate-900 bg-white hover:bg-slate-50 border border-slate-300 rounded-lg shadow-2xs flex items-center gap-1.5 transition-all hover:border-slate-400 cursor-pointer"
+              className="px-3 py-1.5 bg-white hover:bg-stone-50 text-stone-800 border border-stone-200 hover:border-stone-300 rounded-xl text-xs font-semibold flex items-center gap-1.5 transition-all shadow-2xs cursor-pointer"
             >
-              <Plus className="w-3.5 h-3.5 text-indigo-600" />
-              <span>Add to {section.name}</span>
+              <Plus className="w-3.5 h-3.5 text-amber-700" />
+              <span>Add Entry</span>
             </button>
 
+            {/* Menu for Edit / Delete Section */}
             <div className="relative">
               <button
                 onClick={() => setShowMenu(!showMenu)}
-                className="p-1.5 text-slate-400 hover:text-slate-700 hover:bg-white rounded-lg transition-colors border border-transparent hover:border-slate-200 cursor-pointer"
-                title="Section Options"
+                className="p-1.5 text-stone-400 hover:text-stone-700 hover:bg-stone-100 rounded-lg transition-colors cursor-pointer"
+                title="Manage Section"
               >
                 <MoreVertical className="w-4 h-4" />
               </button>
@@ -116,32 +118,31 @@ export const SectionBlock: React.FC<SectionBlockProps> = ({
               {showMenu && (
                 <div
                   onClick={() => setShowMenu(false)}
-                  className="absolute right-0 mt-1 w-44 bg-white border border-slate-200 rounded-xl shadow-lg py-1 text-xs z-30"
+                  className="absolute right-0 mt-1 w-44 bg-white border border-stone-200 rounded-xl shadow-lg py-1 text-xs z-30 animate-fade-in"
                 >
                   <button
                     onClick={() => onEditSection(section)}
-                    className="w-full px-3 py-2 text-left text-slate-700 hover:bg-slate-50 flex items-center gap-2 cursor-pointer"
+                    className="w-full px-3 py-1.5 text-left text-stone-700 hover:bg-stone-50 flex items-center gap-2 cursor-pointer"
                   >
-                    <Pencil className="w-3.5 h-3.5 text-slate-400" />
-                    <span>Edit Section Details</span>
+                    <Pencil className="w-3.5 h-3.5 text-stone-400" />
+                    <span>Edit Name / Icon</span>
                   </button>
-                  {isCustomSection && (
-                    <button
-                      onClick={() => {
-                        if (
-                          confirm(
-                            `Delete section "${section.name}"? Items in it will also be removed.`
-                          )
-                        ) {
-                          onDeleteSection(section.id);
-                        }
-                      }}
-                      className="w-full px-3 py-2 text-left text-rose-600 hover:bg-rose-50 flex items-center gap-2 cursor-pointer"
-                    >
-                      <Trash2 className="w-3.5 h-3.5" />
-                      <span>Delete Section</span>
-                    </button>
-                  )}
+
+                  <button
+                    onClick={() => {
+                      if (
+                        confirm(
+                          `Delete section "${section.name}" and all ${items.length} items inside it?`
+                        )
+                      ) {
+                        onDeleteSection(section.id);
+                      }
+                    }}
+                    className="w-full px-3 py-1.5 text-left text-rose-600 hover:bg-rose-50 flex items-center gap-2 cursor-pointer"
+                  >
+                    <Trash2 className="w-3.5 h-3.5 text-rose-500" />
+                    <span>Delete Section</span>
+                  </button>
                 </div>
               )}
             </div>
@@ -149,36 +150,35 @@ export const SectionBlock: React.FC<SectionBlockProps> = ({
         )}
       </div>
 
-      {/* Items Grid or Empty State */}
+      {/* Grid of Items or Classy Empty State */}
       {items.length === 0 ? (
-        <div className="p-8 sm:p-10 border-2 border-dashed border-slate-200 rounded-2xl bg-white/70 text-center space-y-3 shadow-2xs">
-          <div className="w-12 h-12 rounded-xl bg-slate-100/80 text-slate-400 flex items-center justify-center mx-auto">
-            {renderSectionIcon(section.iconName, 'w-6 h-6')}
+        <div className="bg-white/60 border border-[#E7E2D9] border-dashed rounded-3xl p-8 sm:p-12 text-center flex flex-col items-center justify-center space-y-3">
+          <div className="w-12 h-12 rounded-2xl bg-stone-50 border border-stone-200 flex items-center justify-center text-stone-400">
+            <FolderOpen className="w-6 h-6 text-stone-400" />
           </div>
           <div className="space-y-1">
-            <h3 className="text-sm font-semibold text-slate-800">
-              No entries in {section.name} yet
+            <h3 className="text-base sm:text-lg font-serif-display font-medium text-stone-800">
+              No highlights in {section.name} yet
             </h3>
-            <p className="text-xs text-slate-500 max-w-md mx-auto">
+            <p className="text-xs text-stone-500 max-w-md mx-auto leading-relaxed font-light">
               {isOwner
-                ? 'Add photos, descriptions, milestones, and details of what you did.'
-                : 'Entries will appear here once added.'}
+                ? `Click below to document an activity, project milestone, award, or passion in this collection.`
+                : `This collection is currently undergoing curation. Check back soon for updates.`}
             </p>
           </div>
+
           {isOwner && (
-            <div className="pt-2">
-              <button
-                onClick={() => onAddItem(section.id)}
-                className="px-4 py-2 bg-slate-900 hover:bg-slate-800 text-white rounded-xl text-xs font-semibold inline-flex items-center gap-1.5 shadow-2xs transition-colors cursor-pointer"
-              >
-                <Plus className="w-3.5 h-3.5 text-amber-300" />
-                <span>+ Add to {section.name}</span>
-              </button>
-            </div>
+            <button
+              onClick={() => onAddItem(section.id)}
+              className="mt-2 px-4 py-2 bg-stone-900 hover:bg-stone-800 text-amber-200 border border-amber-400/25 rounded-xl text-xs font-semibold flex items-center gap-1.5 transition-all shadow-xs cursor-pointer"
+            >
+              <Plus className="w-3.5 h-3.5 text-amber-300" />
+              <span>+ Curate First Highlight in {section.name}</span>
+            </button>
           )}
         </div>
       ) : (
-        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-5">
+        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6 sm:gap-7">
           {items.map((item) => (
             <ItemCard
               key={item.id}

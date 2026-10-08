@@ -1,0 +1,49 @@
+rules_version = '2';
+service cloud.firestore {
+  match /databases/{database}/documents {
+    // Global Default Deny
+    match /{document=**} {
+      allow read, write: if false;
+    }
+
+    function isValidId(id) {
+      return id is string && id.size() <= 128 && id.matches('^[a-zA-Z0-9_\\-]+$');
+    }
+
+    function isSignedIn() {
+      return request.auth != null;
+    }
+
+    function isOwner() {
+      return isSignedIn() && (
+        request.auth.token.email == 'nagarajuiitkgp@gmail.com' ||
+        exists(/databases/$(database)/documents/admins/$(request.auth.uid))
+      );
+    }
+
+    function hasValidPasscode() {
+      return request.resource.data.passcode == 'Pleasera**123';
+    }
+
+    // Portfolio Profile: read is public, write is owner/passcode protected
+    match /portfolio/{docId} {
+      allow get, list: if true;
+      allow create, update: if isValidId(docId) && (isOwner() || hasValidPasscode());
+      allow delete: if isValidId(docId) && isOwner();
+    }
+
+    // Sections: read is public, write is owner/passcode protected
+    match /sections/{sectionId} {
+      allow get, list: if true;
+      allow create, update: if isValidId(sectionId) && (isOwner() || hasValidPasscode());
+      allow delete: if isValidId(sectionId) && (isOwner() || resource.data.passcode == 'Pleasera**123');
+    }
+
+    // Items: read is public, write is owner/passcode protected
+    match /items/{itemId} {
+      allow get, list: if true;
+      allow create, update: if isValidId(itemId) && (isOwner() || hasValidPasscode());
+      allow delete: if isValidId(itemId) && (isOwner() || resource.data.passcode == 'Pleasera**123');
+    }
+  }
+}

@@ -1,0 +1,65 @@
+{
+  "entities": {
+    "UserProfile": {
+      "title": "UserProfile",
+      "description": "User profile details of the portfolio owner",
+      "type": "object",
+      "properties": {
+        "name": { "type": "string", "maxLength": 100 },
+        "bio": { "type": "string", "maxLength": 1000 },
+        "avatarUrl": { "type": "string" },
+        "school": { "type": "string", "maxLength": 200 },
+        "major": { "type": "string", "maxLength": 200 },
+        "email": { "type": "string", "maxLength": 150 },
+        "website": { "type": "string", "maxLength": 300 },
+        "github": { "type": "string", "maxLength": 300 },
+        "linkedin": { "type": "string", "maxLength": 300 }
+      },
+      "required": ["name"]
+    },
+    "Section": {
+      "title": "Section",
+      "description": "Portfolio sections like Hobbies and Activities",
+      "type": "object",
+      "properties": {
+        "id": { "type": "string", "maxLength": 128 },
+        "name": { "type": "string", "maxLength": 100 },
+        "description": { "type": "string", "maxLength": 500 },
+        "iconName": { "type": "string", "maxLength": 50 }
+      },
+      "required": ["id", "name"]
+    },
+    "PortfolioItem": {
+      "title": "PortfolioItem",
+      "description": "An activity, hobby, or project entry with photos and descriptions",
+      "type": "object",
+      "properties": {
+        "id": { "type": "string", "maxLength": 128 },
+        "sectionId": { "type": "string", "maxLength": 128 },
+        "title": { "type": "string", "maxLength": 200 },
+        "subtitle": { "type": "string", "maxLength": 200 },
+        "date": { "type": "string", "maxLength": 100 },
+        "description": { "type": "string", "maxLength": 5000 },
+        "photos": { "type": "array" },
+        "tags": { "type": "array" },
+        "link": { "type": "string", "maxLength": 500 },
+        "createdAt": { "type": "number" }
+      },
+      "required": ["id", "sectionId", "title"]
+    }
+  },
+  "firestore": {
+    "/portfolio/{docId}": {
+      "schema": "UserProfile",
+      "description": "Portfolio profile configuration"
+    },
+    "/sections/{sectionId}": {
+      "schema": "Section",
+      "description": "Custom or default portfolio sections"
+    },
+    "/items/{itemId}": {
+      "schema": "PortfolioItem",
+      "description": "Portfolio items, activities, and hobbies"
+    }
+  }
+}

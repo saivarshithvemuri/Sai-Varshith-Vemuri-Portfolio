@@ -1,7 +1,7 @@
 import React, { useState, useRef, useEffect } from 'react';
 import { PortfolioItem, Section } from '../types/portfolio';
 import { fileToCompressedDataUrl } from '../utils/imageUtils';
-import { X, Upload, Trash2, Image as ImageIcon, Check, Plus, Link as LinkIcon } from 'lucide-react';
+import { X, Upload, Trash2, Image as ImageIcon, Check, Plus, Link as LinkIcon, Sparkles } from 'lucide-react';
 
 interface ItemModalProps {
   isOpen: boolean;
@@ -101,7 +101,7 @@ export const ItemModal: React.FC<ItemModalProps> = ({
   const handleSubmit = (e: React.FormEvent) => {
     e.preventDefault();
     if (!title.trim()) {
-      alert('Please enter a title or name for what you did.');
+      alert('Please enter a title for this portfolio entry.');
       return;
     }
 
@@ -128,21 +128,21 @@ export const ItemModal: React.FC<ItemModalProps> = ({
   };
 
   return (
-    <div className="fixed inset-0 z-50 bg-slate-900/60 backdrop-blur-xs flex items-center justify-center p-3 sm:p-6 overflow-y-auto">
-      <div className="bg-white w-full max-w-xl rounded-2xl border border-slate-200 shadow-2xl overflow-hidden my-4 max-h-[92vh] flex flex-col">
+    <div className="fixed inset-0 z-50 bg-stone-950/70 backdrop-blur-xs flex items-center justify-center p-3 sm:p-6 overflow-y-auto">
+      <div className="bg-white w-full max-w-xl rounded-3xl border border-stone-200 shadow-2xl overflow-hidden my-4 max-h-[92vh] flex flex-col">
         {/* Header */}
-        <div className="shrink-0 flex items-center justify-between px-6 py-4 bg-slate-50 border-b border-slate-200">
+        <div className="shrink-0 flex items-center justify-between px-6 py-5 bg-[#FAF8F5] border-b border-stone-200">
           <div>
-            <h2 className="text-lg font-semibold text-slate-900 font-serif-display">
-              {initialItem ? 'Edit Item' : `Add to ${currentSection?.name || 'Section'}`}
+            <h2 className="text-xl font-serif-display font-normal text-stone-900 tracking-tight">
+              {initialItem ? 'Edit Portfolio Entry' : `Curate Entry into ${currentSection?.name || 'Collection'}`}
             </h2>
-            <p className="text-xs text-slate-500">
-              Add details and photos of what you did, learned, or created.
+            <p className="text-xs text-stone-500 font-light mt-0.5">
+              Add photographs and commentary to document this achievement or activity.
             </p>
           </div>
           <button
             onClick={onClose}
-            className="p-1.5 text-slate-400 hover:text-slate-700 rounded-lg transition-colors"
+            className="p-1.5 text-stone-400 hover:text-stone-700 hover:bg-stone-200/50 rounded-xl transition-colors cursor-pointer"
           >
             <X className="w-5 h-5" />
           </button>
@@ -152,11 +152,11 @@ export const ItemModal: React.FC<ItemModalProps> = ({
         <form onSubmit={handleSubmit} className="flex-1 overflow-y-auto p-6 space-y-4 text-sm">
           {/* Section selector */}
           <div className="space-y-1">
-            <label className="text-xs font-semibold text-slate-700">Choose Section</label>
+            <label className="text-xs font-semibold text-stone-700">Curated Collection</label>
             <select
               value={sectionId}
               onChange={(e) => setSectionId(e.target.value)}
-              className="w-full p-2.5 bg-slate-50 border border-slate-200 rounded-lg text-slate-900 font-medium focus:bg-white focus:outline-slate-900"
+              className="w-full p-2.5 bg-stone-50 border border-stone-200 rounded-xl text-stone-900 font-medium focus:bg-white focus:outline-none focus:border-stone-400 shadow-2xs"
             >
               {sections.map((s) => (
                 <option key={s.id} value={s.id}>
@@ -168,52 +168,52 @@ export const ItemModal: React.FC<ItemModalProps> = ({
 
           {/* Title */}
           <div className="space-y-1">
-            <label className="text-xs font-semibold text-slate-800">
-              Title / What You Did <span className="text-rose-500">*</span>
+            <label className="text-xs font-semibold text-stone-800">
+              Title / Activity Name <span className="text-rose-500">*</span>
             </label>
             <input
               type="text"
               required
               value={title}
               onChange={(e) => setTitle(e.target.value)}
-              placeholder="e.g. Piano Practice & Compositions, Robotics Captain, Photography, Model UN..."
-              className="w-full p-2.5 bg-slate-50 border border-slate-300 rounded-lg text-slate-900 font-medium focus:bg-white focus:outline-slate-900"
+              placeholder="e.g. Classical Piano Solo Recital, Robotics Software Lead, Science Olympiad..."
+              className="w-full p-2.5 bg-stone-50 border border-stone-300 rounded-xl text-stone-900 font-medium focus:bg-white focus:outline-none focus:border-stone-400 shadow-2xs"
             />
           </div>
 
           {/* Subtitle / Role & Date */}
           <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
             <div className="space-y-1">
-              <label className="text-xs font-semibold text-slate-800">Role / Subtitle (optional)</label>
+              <label className="text-xs font-semibold text-stone-800">Role / Subtitle (optional)</label>
               <input
                 type="text"
                 value={subtitle}
                 onChange={(e) => setSubtitle(e.target.value)}
-                placeholder="e.g. Self-taught, 4 years / Team Lead / Weekly"
-                className="w-full p-2 bg-slate-50 border border-slate-200 rounded-lg text-xs text-slate-900 focus:bg-white"
+                placeholder="e.g. Lead Developer / 4 Years / Regional Finalist"
+                className="w-full p-2.5 bg-stone-50 border border-stone-200 rounded-xl text-xs text-stone-900 focus:bg-white focus:outline-none focus:border-stone-400"
               />
             </div>
 
             <div className="space-y-1">
-              <label className="text-xs font-semibold text-slate-800">Date / Timeline (optional)</label>
+              <label className="text-xs font-semibold text-stone-800">Timeline / Year (optional)</label>
               <input
                 type="text"
                 value={date}
                 onChange={(e) => setDate(e.target.value)}
-                placeholder="e.g. 2024 - Present, Summer 2025, Grade 11"
-                className="w-full p-2 bg-slate-50 border border-slate-200 rounded-lg text-xs text-slate-900 focus:bg-white"
+                placeholder="e.g. 2024 - 2026, Grade 11, Summer 2025"
+                className="w-full p-2.5 bg-stone-50 border border-stone-200 rounded-xl text-xs text-stone-900 focus:bg-white focus:outline-none focus:border-stone-400"
               />
             </div>
           </div>
 
           {/* PHOTOS SECTION */}
-          <div className="space-y-2 pt-2 border-t border-slate-100">
+          <div className="space-y-2 pt-2 border-t border-stone-100">
             <div className="flex items-center justify-between">
-              <label className="text-xs font-semibold text-slate-800 flex items-center gap-1.5">
-                <ImageIcon className="w-4 h-4 text-slate-600" />
-                <span>Photos of this activity / hobby</span>
+              <label className="text-xs font-semibold text-stone-800 flex items-center gap-1.5">
+                <ImageIcon className="w-4 h-4 text-stone-600" />
+                <span>Visual Documentation & Gallery</span>
               </label>
-              <span className="text-[11px] text-slate-400">Add multiple photos</span>
+              <span className="text-[11px] font-mono text-stone-400">Multiple photos supported</span>
             </div>
 
             {/* Photo Previews */}
@@ -222,19 +222,19 @@ export const ItemModal: React.FC<ItemModalProps> = ({
                 {photos.map((photoUrl, idx) => (
                   <div
                     key={idx}
-                    className="relative group aspect-square rounded-lg overflow-hidden border border-slate-200 bg-slate-100 shadow-2xs"
+                    className="relative group aspect-square rounded-xl overflow-hidden border border-stone-200 bg-stone-100 shadow-2xs"
                   >
                     <img src={photoUrl} alt="Upload preview" className="w-full h-full object-cover" />
                     <button
                       type="button"
                       onClick={() => handleRemovePhoto(idx)}
-                      className="absolute top-1 right-1 p-1 bg-black/75 hover:bg-rose-600 text-white rounded-md transition-colors"
+                      className="absolute top-1 right-1 p-1 bg-stone-900/80 hover:bg-rose-600 text-white rounded-lg transition-colors cursor-pointer"
                       title="Remove photo"
                     >
                       <Trash2 className="w-3.5 h-3.5" />
                     </button>
                     {idx === 0 && (
-                      <span className="absolute bottom-1 left-1 bg-black/70 text-white text-[9px] font-semibold px-1 rounded">
+                      <span className="absolute bottom-1 left-1 bg-stone-950/80 text-amber-200 text-[9px] font-semibold px-1.5 py-0.5 rounded">
                         Cover
                       </span>
                     )}
@@ -257,18 +257,18 @@ export const ItemModal: React.FC<ItemModalProps> = ({
                 type="button"
                 disabled={isProcessingPhotos}
                 onClick={() => fileInputRef.current?.click()}
-                className="px-3.5 py-2 bg-slate-100 hover:bg-slate-200 text-slate-800 rounded-lg text-xs font-medium flex items-center gap-1.5 transition-colors border border-slate-200"
+                className="px-3.5 py-2 bg-stone-100 hover:bg-stone-200 text-stone-800 rounded-xl text-xs font-semibold flex items-center gap-1.5 transition-colors border border-stone-200 cursor-pointer"
               >
-                <Upload className="w-3.5 h-3.5 text-slate-600" />
+                <Upload className="w-3.5 h-3.5 text-stone-600" />
                 <span>{isProcessingPhotos ? 'Processing images...' : '+ Upload Photos from Device'}</span>
               </button>
 
               <button
                 type="button"
                 onClick={() => setShowPhotoUrlInput(!showPhotoUrlInput)}
-                className="px-3 py-2 text-xs font-medium text-slate-600 hover:text-slate-900 bg-slate-50 hover:bg-slate-100 rounded-lg transition-colors border border-slate-200"
+                className="px-3 py-2 text-xs font-medium text-stone-600 hover:text-stone-900 bg-white hover:bg-stone-50 rounded-xl transition-colors border border-stone-200 cursor-pointer"
               >
-                + Image URL
+                + Paste Image URL
               </button>
             </div>
 
@@ -280,73 +280,73 @@ export const ItemModal: React.FC<ItemModalProps> = ({
                   value={photoUrlInput}
                   onChange={(e) => setPhotoUrlInput(e.target.value)}
                   placeholder="https://example.com/photo.jpg"
-                  className="flex-1 p-2 bg-slate-50 border border-slate-200 rounded-lg text-xs"
+                  className="flex-1 p-2 bg-stone-50 border border-stone-200 rounded-xl text-xs"
                 />
                 <button
                   type="button"
                   onClick={handleAddPhotoByUrl}
-                  className="px-3 py-2 bg-slate-900 text-white text-xs font-medium rounded-lg"
+                  className="px-3.5 py-2 bg-stone-900 text-amber-200 text-xs font-semibold rounded-xl cursor-pointer"
                 >
-                  Add
+                  Add URL
                 </button>
               </div>
             )}
           </div>
 
           {/* Description */}
-          <div className="space-y-1 pt-1 border-t border-slate-100">
-            <label className="text-xs font-semibold text-slate-800">
-              Description / What I Did / Notes
+          <div className="space-y-1 pt-1 border-t border-stone-100">
+            <label className="text-xs font-semibold text-stone-800">
+              Description / Notes & Milestones
             </label>
             <textarea
               rows={3}
               value={description}
               onChange={(e) => setDescription(e.target.value)}
-              placeholder="Tell what you did, what you accomplished, what you learned, or why you enjoy it..."
-              className="w-full p-2.5 bg-slate-50 border border-slate-200 rounded-lg text-slate-900 focus:bg-white focus:outline-slate-900 leading-relaxed text-xs sm:text-sm"
+              placeholder="Detail your responsibilities, breakthroughs, skills practiced, or artistic motivations..."
+              className="w-full p-3 bg-stone-50 border border-stone-200 rounded-xl text-stone-900 focus:bg-white focus:outline-none focus:border-stone-400 leading-relaxed text-xs sm:text-sm shadow-2xs"
             />
           </div>
 
           {/* Tags & Link */}
-          <div className="grid grid-cols-1 sm:grid-cols-2 gap-3 pt-1 border-t border-slate-100">
+          <div className="grid grid-cols-1 sm:grid-cols-2 gap-3 pt-1 border-t border-stone-100">
             <div className="space-y-1">
-              <label className="text-xs font-semibold text-slate-700">Tags / Skills (comma separated)</label>
+              <label className="text-xs font-semibold text-stone-700">Tags / Skills (comma separated)</label>
               <input
                 type="text"
                 value={tagsInput}
                 onChange={(e) => setTagsInput(e.target.value)}
-                placeholder="e.g. Leadership, Python, Music, Teamwork..."
-                className="w-full p-2 bg-slate-50 border border-slate-200 rounded-lg text-xs text-slate-900"
+                placeholder="e.g. Leadership, Python, Chamber Music, Outreach..."
+                className="w-full p-2.5 bg-stone-50 border border-stone-200 rounded-xl text-xs text-stone-900 focus:bg-white"
               />
             </div>
 
             <div className="space-y-1">
-              <label className="text-xs font-semibold text-slate-700">Link URL (optional)</label>
+              <label className="text-xs font-semibold text-stone-700">Project / Portfolio Link URL</label>
               <input
                 type="url"
                 value={link}
                 onChange={(e) => setLink(e.target.value)}
                 placeholder="https://github.com/... or https://..."
-                className="w-full p-2 bg-slate-50 border border-slate-200 rounded-lg text-xs text-slate-900"
+                className="w-full p-2.5 bg-stone-50 border border-stone-200 rounded-xl text-xs text-stone-900 focus:bg-white"
               />
             </div>
           </div>
 
           {/* Actions */}
-          <div className="pt-3 border-t border-slate-200 flex justify-end gap-2">
+          <div className="pt-3 border-t border-stone-200 flex justify-end gap-2">
             <button
               type="button"
               onClick={onClose}
-              className="px-4 py-2 text-xs font-medium text-slate-600 hover:text-slate-900"
+              className="px-4 py-2 text-xs font-medium text-stone-600 hover:text-stone-900 cursor-pointer"
             >
               Cancel
             </button>
             <button
               type="submit"
-              className="px-5 py-2 text-xs font-semibold text-white bg-slate-900 hover:bg-slate-800 rounded-lg transition-colors flex items-center gap-1.5 shadow-xs"
+              className="px-5 py-2 text-xs font-semibold text-amber-200 bg-stone-900 hover:bg-stone-800 border border-amber-400/25 rounded-xl transition-colors flex items-center gap-1.5 shadow-xs cursor-pointer"
             >
               <Check className="w-4 h-4" />
-              <span>{initialItem ? 'Save Changes' : 'Add Item'}</span>
+              <span>{initialItem ? 'Save Updates' : 'Add to Collection'}</span>
             </button>
           </div>
         </form>

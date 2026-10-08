@@ -1,6 +1,6 @@
 import React, { useState } from 'react';
 import { Section, PortfolioItem, UserProfile } from '../types/portfolio';
-import { X, Download, Copy, Check, Globe, ShieldCheck, FileCode, ExternalLink } from 'lucide-react';
+import { X, Download, Copy, Check, Globe, ShieldCheck, FileCode } from 'lucide-react';
 
 interface PublishModalProps {
   isOpen: boolean;
@@ -63,109 +63,121 @@ export const initialBlankProfile = initialProfile;
   };
 
   return (
-    <div className="fixed inset-0 z-50 bg-slate-900/60 backdrop-blur-xs flex items-center justify-center p-3 sm:p-6 overflow-y-auto">
-      <div className="bg-white w-full max-w-xl rounded-2xl border border-slate-200 shadow-2xl overflow-hidden my-4 max-h-[90vh] flex flex-col">
+    <div className="fixed inset-0 z-50 bg-stone-950/70 backdrop-blur-xs flex items-center justify-center p-3 sm:p-6 overflow-y-auto">
+      <div className="bg-white w-full max-w-xl rounded-3xl border border-stone-200 shadow-2xl overflow-hidden my-4 max-h-[90vh] flex flex-col">
         {/* Header */}
-        <div className="flex items-center justify-between px-6 py-4 bg-slate-50 border-b border-slate-200">
-          <div className="flex items-center gap-2">
-            <div className="w-8 h-8 rounded-lg bg-indigo-100 text-indigo-700 flex items-center justify-center">
+        <div className="flex items-center justify-between px-6 py-5 bg-[#FAF8F5] border-b border-stone-200">
+          <div className="flex items-center gap-2.5">
+            <div className="w-8 h-8 rounded-xl bg-stone-900 text-amber-300 flex items-center justify-center border border-amber-400/30">
               <Globe className="w-4 h-4" />
             </div>
             <div>
-              <h2 className="text-base font-bold text-slate-900 font-serif-display">
-                Host & Publish Your Website
+              <h2 className="text-base font-serif-display font-medium text-stone-900">
+                Hosting & Live Deployment Guide
               </h2>
-              <p className="text-xs text-slate-500">
-                Lock edits and display your content to visitors on any free host
+              <p className="text-[11px] text-stone-500 font-light">
+                Public read-only security and multi-device cloud synchronization
               </p>
             </div>
           </div>
-          <button onClick={onClose} className="p-1 text-slate-400 hover:text-slate-700 rounded-lg">
+          <button
+            onClick={onClose}
+            className="p-1.5 text-stone-400 hover:text-stone-700 hover:bg-stone-200/50 rounded-xl transition-colors cursor-pointer"
+          >
             <X className="w-5 h-5" />
           </button>
         </div>
 
         {/* Content */}
-        <div className="p-6 overflow-y-auto space-y-6 text-sm">
+        <div className="p-6 overflow-y-auto space-y-5 text-sm">
           {/* Security Notice */}
-          <div className="p-4 bg-emerald-50/80 border border-emerald-200 rounded-xl flex items-start gap-3">
-            <ShieldCheck className="w-5 h-5 text-emerald-600 shrink-0 mt-0.5" />
-            <div className="text-xs text-emerald-900 leading-relaxed">
-              <strong>Your site is now protected:</strong>
+          <div className="p-4 bg-emerald-50/80 border border-emerald-200 rounded-2xl flex items-start gap-3">
+            <ShieldCheck className="w-5 h-5 text-emerald-700 shrink-0 mt-0.5" />
+            <div className="text-xs text-emerald-950 leading-relaxed font-light">
+              <strong className="font-semibold text-emerald-900">Zero-Tampering Security Active:</strong>
               <p className="mt-1">
-                Anyone visiting your hosted link will see it in <strong>Read-Only Mode</strong>. They cannot edit your profile, add items, or delete sections. Only you can unlock it using your secret passcode (<code className="bg-emerald-100 px-1 py-0.5 rounded font-mono font-bold">Pleasera**123</code>).
+                Anyone visiting your hosted domain (Vercel, Netlify, GitHub Pages, or free hoster) views this dossier in <strong>Curated Public Mode</strong>. Visitors cannot edit your profile, add entries, or delete sections. Only you can unlock it using your secret passcode (<code className="bg-emerald-100 px-1 py-0.5 rounded font-mono font-bold text-emerald-900">Pleasera**123</code>).
               </p>
             </div>
           </div>
 
-          {/* Publishing Steps */}
-          <div className="space-y-4">
-            <h3 className="text-xs font-bold text-slate-900 uppercase tracking-wider">
-              How to Publish Content to your Free Hoster (Vercel, Netlify, GitHub Pages)
+          {/* Cloud Database Notice */}
+          <div className="p-4 bg-amber-50/70 border border-amber-200/80 rounded-2xl flex items-start gap-3">
+            <Globe className="w-5 h-5 text-amber-800 shrink-0 mt-0.5" />
+            <div className="text-xs text-amber-950 leading-relaxed font-light">
+              <strong className="font-semibold text-amber-900">Real-Time Cloud Synchronization:</strong>
+              <p className="mt-1">
+                When you add or update a hobby, activity, or photograph, it writes to your cloud database in real time. Anyone opening the site on any browser or phone will immediately see the updated collection.
+              </p>
+            </div>
+          </div>
+
+          {/* Export Options */}
+          <div className="space-y-3 pt-2 border-t border-stone-200">
+            <h3 className="text-xs font-semibold text-stone-900 uppercase font-mono tracking-wider">
+              Offline Backups & Source Data
             </h3>
 
-            {/* Method 1: Download portfolioData.json */}
-            <div className="p-4 border border-slate-200 rounded-xl bg-slate-50/50 space-y-3">
-              <div className="flex items-center justify-between">
-                <span className="text-xs font-semibold text-slate-800 flex items-center gap-1.5">
-                  <span className="w-5 h-5 rounded-full bg-slate-900 text-white text-[10px] flex items-center justify-center font-bold">1</span>
-                  Recommended: Download Data File
-                </span>
-                <span className="text-[11px] bg-indigo-50 text-indigo-700 font-medium px-2 py-0.5 rounded">
-                  Instant
-                </span>
-              </div>
-              <p className="text-xs text-slate-600 leading-relaxed">
-                Download <code className="bg-white border px-1 py-0.5 rounded text-slate-800 font-mono">portfolioData.json</code> and place it inside your project's <code className="bg-white border px-1 py-0.5 rounded text-slate-800 font-mono">public/</code> directory. When deployed, your host will automatically serve your activities, hobbies, and photos to all visitors.
-              </p>
-              <div className="flex items-center gap-2">
-                <button
-                  onClick={handleDownloadJSON}
-                  className="px-3.5 py-2 bg-slate-900 hover:bg-slate-800 text-white text-xs font-semibold rounded-lg flex items-center gap-1.5 transition-colors shadow-2xs"
-                >
-                  <Download className="w-3.5 h-3.5" />
-                  <span>Download portfolioData.json</span>
-                </button>
-                <button
-                  onClick={handleCopyJSON}
-                  className="px-3 py-2 bg-white hover:bg-slate-100 text-slate-700 border border-slate-200 text-xs font-medium rounded-lg flex items-center gap-1.5 transition-colors"
-                >
-                  {copiedJSON ? <Check className="w-3.5 h-3.5 text-emerald-600" /> : <Copy className="w-3.5 h-3.5" />}
-                  <span>{copiedJSON ? 'Copied' : 'Copy JSON'}</span>
-                </button>
-              </div>
+            <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
+              <button
+                type="button"
+                onClick={handleDownloadJSON}
+                className="p-3.5 bg-stone-50 hover:bg-stone-100 border border-stone-200 rounded-2xl text-left transition-colors flex items-center justify-between group cursor-pointer shadow-2xs"
+              >
+                <div>
+                  <div className="font-medium text-xs text-stone-900 flex items-center gap-1.5">
+                    <Download className="w-4 h-4 text-stone-500" />
+                    <span>Download JSON File</span>
+                  </div>
+                  <div className="text-[11px] text-stone-500 font-light mt-0.5">
+                    Save a full archive of all entries
+                  </div>
+                </div>
+              </button>
+
+              <button
+                type="button"
+                onClick={handleCopyJSON}
+                className="p-3.5 bg-stone-50 hover:bg-stone-100 border border-stone-200 rounded-2xl text-left transition-colors flex items-center justify-between group cursor-pointer shadow-2xs"
+              >
+                <div>
+                  <div className="font-medium text-xs text-stone-900 flex items-center gap-1.5">
+                    {copiedJSON ? <Check className="w-4 h-4 text-emerald-600" /> : <Copy className="w-4 h-4 text-stone-500" />}
+                    <span>{copiedJSON ? 'Copied JSON!' : 'Copy Raw JSON'}</span>
+                  </div>
+                  <div className="text-[11px] text-stone-500 font-light mt-0.5">
+                    Copy export to clipboard
+                  </div>
+                </div>
+              </button>
             </div>
 
-            {/* Method 2: Embed directly into defaultPortfolio.ts */}
-            <div className="p-4 border border-slate-200 rounded-xl bg-slate-50/50 space-y-3">
-              <div className="flex items-center justify-between">
-                <span className="text-xs font-semibold text-slate-800 flex items-center gap-1.5">
-                  <span className="w-5 h-5 rounded-full bg-slate-900 text-white text-[10px] flex items-center justify-center font-bold">2</span>
-                  Alternative: Embed Directly in Code
-                </span>
-              </div>
-              <p className="text-xs text-slate-600 leading-relaxed">
-                Copy this code and replace the content of <code className="bg-white border px-1 py-0.5 rounded text-slate-800 font-mono">src/data/defaultPortfolio.ts</code>. Your items will be permanently bundled directly into the compiled app.
-              </p>
+            <div className="pt-2">
               <button
+                type="button"
                 onClick={handleCopyCode}
-                className="px-3.5 py-2 bg-white hover:bg-slate-100 text-slate-800 border border-slate-300 text-xs font-semibold rounded-lg flex items-center gap-1.5 transition-colors shadow-2xs"
+                className="w-full p-3 bg-stone-50 hover:bg-stone-100 border border-stone-200 rounded-2xl text-left transition-colors flex items-center justify-between group cursor-pointer"
               >
-                {copiedCode ? <Check className="w-3.5 h-3.5 text-emerald-600" /> : <FileCode className="w-3.5 h-3.5 text-indigo-600" />}
-                <span>{copiedCode ? 'Code Copied to Clipboard!' : 'Copy Code for defaultPortfolio.ts'}</span>
+                <div className="flex items-center gap-2">
+                  <FileCode className="w-4 h-4 text-stone-500" />
+                  <span className="text-xs font-medium text-stone-800">
+                    Copy static code for <code className="font-mono text-stone-600">defaultPortfolio.ts</code>
+                  </span>
+                </div>
+                {copiedCode && <span className="text-xs text-emerald-700 font-semibold font-mono">Copied!</span>}
               </button>
             </div>
           </div>
-        </div>
 
-        {/* Footer */}
-        <div className="px-6 py-3 bg-slate-50 border-t border-slate-200 flex justify-end">
-          <button
-            onClick={onClose}
-            className="px-4 py-1.5 bg-slate-900 text-white text-xs font-semibold rounded-lg hover:bg-slate-800 transition-colors"
-          >
-            Got it
-          </button>
+          <div className="pt-2 border-t border-stone-200 flex justify-end">
+            <button
+              type="button"
+              onClick={onClose}
+              className="px-5 py-2 text-xs font-semibold text-amber-200 bg-stone-900 hover:bg-stone-850 rounded-xl border border-amber-400/25 cursor-pointer"
+            >
+              Close
+            </button>
+          </div>
         </div>
       </div>
     </div>
